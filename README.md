@@ -1,6 +1,6 @@
 # Chumi Geo Tag
 
-Put a place, an address and a time on any photo. Choose a photo, set the location from an address, a Google Maps link, coordinates or a pin on the map, pick the date and time, and download the photo with a geotag stamp drawn on it.
+Put a place, an address and a time on any photo. Choose one photo or a whole batch, set the location from an address, a Google Maps link, coordinates or a pin on the map, pick the date and time, and download the photo with a geotag stamp drawn on it.
 
 It is one static page, built in plain HTML, CSS and JavaScript. It runs entirely in the browser, needs no server and no account, and **your photo is never uploaded**.
 
@@ -12,7 +12,8 @@ It is one static page, built in plain HTML, CSS and JavaScript. It runs entirely
 - **Date and time:** any date, time and time zone, in four date styles.
 - **Real geotag in the file:** JPEG downloads also carry the GPS position, date and time zone in their EXIF data, so gallery apps and maps place the photo correctly.
 - **Edits an existing geotag:** if the photo already has a location or date in its EXIF data, they load as the starting point.
-- **Output:** JPEG (quality control) or PNG, capped at 4096 px on the long side or at the original size.
+- **Batches:** choose, drop or paste many photos at once (up to 60). Thumbnails let you check each one, with previous and next arrows on the preview. The same place, text, style and date go on every photo. Optionally keep each photo's own date and time when its camera data has one.
+- **Output:** JPEG (quality control) or PNG, capped at 4096 px on the long side or at the original size. A batch downloads as one ZIP of stamped photos, or as one **PDF**: A4 pages with 1, 2 or 4 photos each, or pages shaped like each photo. "Only this one" saves just the photo you are looking at.
 - **Landing page, About and copyright details:** the site opens on a short landing page (a live sample of the stamp, how it works, About, credits and licences). The tool itself is at `#app`, for example `https://<your-username>.github.io/geotag-stamp/#app`.
 - **Rating:** visitors rate the site from 1 to 5 stars. The rating is saved on their own device. They can add a note and send it to you as a prefilled GitHub issue, or copy it.
 - **Share:** native share sheet where the device has one, plus WhatsApp, Telegram, X, Facebook, Email and copy link.
@@ -100,6 +101,8 @@ pyftsubset InstrumentSans-Regular.ttf --unicodes="U+0020-007E,U+00A0-00FF,U+2013
 
 ## Limits
 
+- A batch holds up to 60 photos. Photos are decoded one at a time while saving, to keep memory low on phones, so a big batch of full-size photos can take a while.
+- PDF pages hold the stamped photos as JPEGs; the location and time in the file data (EXIF) go into ZIP and image downloads, not the PDF.
 - Short Google links (`maps.app.goo.gl`) cannot be opened from a web page. Paste the full link from the browser's address bar instead.
 - Address search is OpenStreetMap-based, not Google's, so a few places may be named differently.
 - Saving as JPEG writes a fresh EXIF block with location and time only. Other camera details from the original photo are not carried over.

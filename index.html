@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Chumi Geo Tag: add location, address and time to a photo</title>
 <meta name="description" content="Upload a photo, set a place from an address, Google Maps link or map pin, pick a date and time, and download the photo with a geotag stamp.">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-m/fYpMtzNA3MVYjbhPIuI89if+kbTJpYCOLWedl6B2E='; style-src 'sha256-y2/r02sbacjYMSycv6RgN31z4qfBd1dpQMH6EFb0RlI='; img-src 'self' data: blob: https://tile.openstreetmap.org https://server.arcgisonline.com; font-src data:; connect-src https://nominatim.openstreetmap.org https://photon.komoot.io; base-uri 'none'; form-action 'none'; object-src 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-UC9ubZcxEtzCuEzu5DfcASpi8FGDwdqJtOlT8QTW0IU='; style-src 'sha256-LcTDie/lreRGs+7EU/YiN7PzMkFk26X0P+W9nOUaR5A='; img-src 'self' data: blob: https://tile.openstreetmap.org https://server.arcgisonline.com; font-src data:; connect-src https://nominatim.openstreetmap.org https://photon.komoot.io; base-uri 'none'; form-action 'none'; object-src 'none'">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <meta name="theme-color" content="#E8EBE6">
 <meta property="og:type" content="website">
@@ -377,6 +377,22 @@ dialog.closing::backdrop{animation:fadeOut .18s ease-in both}
 .cards{grid-template-columns:repeat(4,minmax(0,1fr))}
 @media (max-width:560px){.thumbs{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media (max-width:480px){.cards{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+/* photo batch */
+.film{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(64px,1fr));gap:6px}
+.film li.new{animation:riseS .35s var(--ease) calc(var(--i,0) * 30ms) both}
+.film button{display:block;width:100%;aspect-ratio:1;padding:0;border:1px solid var(--line);background:var(--field);cursor:pointer;overflow:hidden}
+.film button img{display:block;width:100%;height:100%;object-fit:cover}
+.film button[aria-current=true]{outline:3px solid var(--ink);outline-offset:-3px}
+.film button:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.nav{position:absolute;top:50%;margin-top:-22px;width:44px;height:44px;display:grid;place-items:center;padding:0;background:rgba(21,25,23,.84);border:1px solid var(--stage-3);color:var(--stage-ink);cursor:pointer;transition:background-color .12s,color .12s}
+.nav svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+.nav.prev{left:36px}.nav.next{right:36px}
+.nav:hover{background:var(--stage-ink);color:var(--stage)}
+.nav:focus-visible{outline:2px solid var(--stage-ink);outline-offset:2px}
+.group.off label{color:#7A847D}
+@media (max-width:959px){.nav.prev{left:24px}.nav.next{right:24px}}
+@media (max-width:420px){.actionbar .btn{padding:0 10px}}
 </style>
 </head>
 <body>
@@ -431,9 +447,9 @@ dialog.closing::backdrop{animation:fadeOut .18s ease-in both}
     <section id="how" class="band" aria-labelledby="h-how">
       <h2 id="h-how" class="reveal">Three steps, no sign-up.</h2>
       <ol class="steps" role="list">
-        <li class="reveal r1"><h3>Choose a photo</h3><p>A JPEG, PNG or WebP from your phone or computer. It opens in your browser and goes nowhere else.</p></li>
+        <li class="reveal r1"><h3>Choose your photos</h3><p>One photo or a whole batch, as JPEG, PNG or WebP, from your phone or computer. They open in your browser and go nowhere else.</p></li>
         <li class="reveal r2"><h3>Say where and when</h3><p>Type an address, paste a Google Maps link, drop a pin or use your location. Set any date and time.</p></li>
-        <li class="reveal r3"><h3>Download it stamped</h3><p>Pick a map style, then save a full-resolution photo with the stamp drawn on and the location written into the file.</p></li>
+        <li class="reveal r3"><h3>Download it stamped</h3><p>Pick a map style, then save full-resolution photos as a ZIP or as one PDF, with the stamp drawn on and the location written into each file.</p></li>
       </ol>
     </section>
 
@@ -444,6 +460,7 @@ dialog.closing::backdrop{animation:fadeOut .18s ease-in both}
           <dl class="facts">
             <div class="reveal r1"><dt>Reads Google Maps links.</dt><dd>Paste a place link, a link with coordinates, or plain latitude and longitude. The pin lands where it should.</dd></div>
             <div class="reveal r2"><dt>Writes a real geotag.</dt><dd>JPEG downloads carry the GPS position, date and time zone in the file, so gallery apps and maps place the photo correctly.</dd></div>
+            <div class="reveal r3"><dt>Stamps a whole batch.</dt><dd>Add many photos at once. The same place goes on every one. Save them as a ZIP, or as a PDF with one, two or four photos per page.</dd></div>
             <div class="reveal r3"><dt>Edits an existing geotag.</dt><dd>If a photo already has a location or date, they load as your starting point.</dd></div>
             <div class="reveal r4"><dt>Private by design.</dt><dd>Your photo is never uploaded. The page can only talk to the map and address services, and nothing else.</dd></div>
           </dl>
@@ -477,7 +494,7 @@ dialog.closing::backdrop{animation:fadeOut .18s ease-in both}
       <div class="split">
         <h2 id="h-about" class="reveal">About Chumi Geo Tag</h2>
         <div class="prose">
-          <div class="reveal"><h3>What it is</h3><p>Chumi Geo Tag is a free tool that puts a place, an address and a time on a photo. Choose a picture, say where and when, and download it with a clean stamp and a real geotag inside the file.</p></div>
+          <div class="reveal"><h3>What it is</h3><p>Chumi Geo Tag is a free tool that puts a place, an address and a time on a photo. Choose one picture or a whole batch, say where and when, and download them with a clean stamp and a real geotag inside each file, or as a PDF.</p></div>
           <div class="reveal r1"><h3>Your photo stays with you</h3><p>The photo is read and drawn on in your browser. It is never uploaded. Only the address you search for is sent to OpenStreetMap's search service, and map pictures are fetched from OpenStreetMap and Esri.</p></div>
           <div class="reveal r2"><h3>Open source</h3><p>The code is free to read, copy and improve under the MIT licence. <a href="https://github.com/rkarthikraj198-stack/geotag-stamp" target="_blank" rel="noopener noreferrer">View it on GitHub</a>.</p></div>
           <div class="reveal r3"><h3>Please use it honestly</h3><p>Chumi Geo Tag writes the place and time you choose onto a photo. It does not prove where or when a photo was taken, and you are responsible for how you use the result.</p></div>
@@ -525,12 +542,17 @@ dialog.closing::backdrop{animation:fadeOut .18s ease-in both}
   <div class="controls" id="controls">
 
     <section aria-labelledby="h-photo">
-      <h2 id="h-photo">Photo</h2>
+      <h2 id="h-photo">Photos</h2>
       <div class="row">
-        <button type="button" class="btn primary" id="pickBtn">Choose photo</button>
-        <input type="file" id="file" accept="image/*" hidden>
+        <button type="button" class="btn primary" id="pickBtn">Choose photos</button>
+        <input type="file" id="file" accept="image/*" multiple hidden>
       </div>
-      <p class="hint" id="fileName">No photo chosen. It stays in this browser; nothing is uploaded.</p>
+      <p class="hint" id="fileName">No photos chosen. They stay in this browser; nothing is uploaded.</p>
+      <ul class="film" id="film" aria-label="Photos in this batch" hidden></ul>
+      <div class="row wrap" id="batchTools" hidden>
+        <button type="button" class="btn quiet" id="rmBtn">Remove photo</button>
+        <button type="button" class="btn quiet" id="clearBtn">Clear all</button>
+      </div>
       <p class="hint" id="exifNote" hidden></p>
     </section>
 
@@ -587,6 +609,8 @@ dialog.closing::backdrop{animation:fadeOut .18s ease-in both}
         <label for="dfmt">Date style</label>
         <select id="dfmt"></select>
       </div>
+      <label class="check" id="ownTimeWrap"><input type="checkbox" id="useOwnTime">Keep each photo's own date and time when it has one</label>
+      <p class="hint" id="ownTimeHint" hidden></p>
     </section>
 
     <section aria-labelledby="h-style">
@@ -645,6 +669,13 @@ dialog.closing::backdrop{animation:fadeOut .18s ease-in both}
 
     <section aria-labelledby="h-save">
       <h2 id="h-save">Save</h2>
+      <fieldset id="scopeWrap" hidden>
+        <legend>Photos to save</legend>
+        <div class="seg" role="radiogroup">
+          <input type="radio" name="scope" id="scope-all" value="all" checked><label for="scope-all">All photos</label>
+          <input type="radio" name="scope" id="scope-one" value="one"><label for="scope-one">Only this one</label>
+        </div>
+      </fieldset>
       <fieldset>
         <legend>File type</legend>
         <div class="seg" role="radiogroup">
@@ -665,6 +696,15 @@ dialog.closing::backdrop{animation:fadeOut .18s ease-in both}
       </div>
       <label class="check" id="exifWrap"><input type="checkbox" id="writeExif" checked>Also write the location and time into the file data (EXIF)</label>
       <p class="hint">Gallery apps and maps read EXIF to place the photo. Other camera details from the original aren't carried over.</p>
+      <div class="group">
+        <label for="pdfPage">PDF page</label>
+        <select id="pdfPage"><option value="a4">A4, each photo fits the page</option><option value="photo">Same shape as each photo</option></select>
+      </div>
+      <div class="group" id="pdfPerWrap">
+        <label for="pdfPer">Photos per A4 page</label>
+        <select id="pdfPer"><option value="1">1</option><option value="2">2</option><option value="4">4</option></select>
+      </div>
+      <p class="hint">A ZIP holds every stamped photo as its own file. The PDF puts them on pages, in the order shown above.</p>
     </section>
   </div>
 
@@ -672,16 +712,19 @@ dialog.closing::backdrop{animation:fadeOut .18s ease-in both}
     <div class="stage-top"><span class="name" id="stageName">Preview</span><span id="stageDims"></span></div>
     <div class="stage-body" id="stageBody">
       <div class="drop" id="drop">
-        <h2>Drop a photo here to start</h2>
-        <p>Then set the place and time. The stamp updates as you type, and the download is full resolution.</p>
-        <button type="button" class="btn primary" id="pickBtn2">Choose photo</button>
+        <h2>Drop photos here to start</h2>
+        <p>Add one photo or a whole batch. The same place and time are stamped on every photo, and you can download them as a ZIP or as one PDF.</p>
+        <button type="button" class="btn primary" id="pickBtn2">Choose photos</button>
       </div>
       <canvas class="preview" id="preview" hidden role="img" aria-label="Preview of the photo with the geotag stamp"></canvas>
+      <button type="button" class="nav prev" id="prevBtn" aria-label="Previous photo" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 4l-8 8 8 8"/></svg></button>
+      <button type="button" class="nav next" id="nextBtn" aria-label="Next photo" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 4l8 8-8 8"/></svg></button>
     </div>
     <div class="actionbar">
-      <p class="msg" id="saveMsg" role="status" aria-live="polite">Choose a photo to begin.</p>
+      <p class="msg" id="saveMsg" role="status" aria-live="polite">Choose photos to begin.</p>
       <div class="btns">
         <button type="button" class="btn" id="shareBtn" hidden>Share image</button>
+        <button type="button" class="btn" id="pdfBtn" disabled>Download PDF</button>
         <button type="button" class="btn primary" id="dlBtn" disabled>Download image</button>
       </div>
     </div>
@@ -733,7 +776,7 @@ function setStatus(el, text, bad) { el.textContent = text || ''; el.classList.to
 
 /* ================= state ================= */
 const S = {
-  img: null, imgUrl: '', fileName: '',
+  img: null, fileName: '', scope: 'all', pdfPage: 'a4', pdfPer: '1', useOwnTime: false,
   lat: null, lng: null,
   title: '', addr: '', note: '',
   addrDirty: false, titleDirty: false, foundAddr: '', foundTitle: '', approx: false,
@@ -743,7 +786,7 @@ const S = {
   showMap: true, showCoords: true, showDate: true, coordFmt: 'dec', dfmt: 'gmc',
   fmt: 'jpeg', quality: 92, maxEdge: 4096, writeExif: true,
 };
-const PERSIST = ['layout','pos','theme','scale','mapDesign','showMap','showCoords','showDate','coordFmt','dfmt','fmt','quality','maxEdge','writeExif'];
+const PERSIST = ['layout','pos','theme','scale','mapDesign','pdfPage','pdfPer','showMap','showCoords','showDate','coordFmt','dfmt','fmt','quality','maxEdge','writeExif'];
 function loadSettings() {
   try { const o = JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}'); for (const k of PERSIST) if (k in o && typeof o[k] === typeof S[k]) S[k] = o[k]; } catch (e) {}
   if (!['street', 'mono', 'night', 'satellite'].includes(S.mapDesign)) S.mapDesign = 'street';
@@ -1317,13 +1360,13 @@ function drawPin(ctx, cx, cy, s) {
   ctx.fillStyle = ACCENT; ctx.fill(); ctx.lineWidth = 0.4 * s; ctx.strokeStyle = '#fff'; ctx.lineJoin = 'round'; ctx.stroke();
   ctx.beginPath(); ctx.arc(cx, by, r * 0.38, 0, Math.PI * 2); ctx.fillStyle = '#fff'; ctx.fill();
 }
-function stampData() {
-  const hasLoc = S.lat != null;
-  const p = parseDT(S.dt);
+function stampData(it = items[cur]) {
+  const hasLoc = S.lat != null, w = whenFor(it);
+  const p = parseDT(w.dt);
   return {
     title: S.title.trim(), addr: S.addr.trim(), note: S.note.trim(),
     coords: hasLoc && S.showCoords ? fmtCoords(S.lat, S.lng, S.coordFmt) : '',
-    date: p && S.showDate ? formatDT(p, S.tz, S.dfmt) : '',
+    date: p && S.showDate ? formatDT(p, w.tz, S.dfmt) : '',
     hasLoc,
   };
 }
@@ -1372,85 +1415,149 @@ function drawStamp(ctx, W, H, st = S, d = stampData(), variants = thumbVariants)
     if (i < blocks.length - 1) y += 0.55 * s;
   });
 }
-function renderTo(canvas, W, H, forJpeg) {
+function renderTo(canvas, W, H, forJpeg, img = S.img, d) {
   canvas.width = W; canvas.height = H;
   const ctx = canvas.getContext('2d');
   ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
   if (forJpeg) { ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, W, H); }
-  ctx.drawImage(S.img, 0, 0, W, H);
-  drawStamp(ctx, W, H);
+  ctx.drawImage(img, 0, 0, W, H);
+  drawStamp(ctx, W, H, S, d);
 }
 
 /* ================= preview ================= */
 const el = {};
 let rafId = 0;
 function schedule() { if (!rafId) rafId = requestAnimationFrame(() => { rafId = 0; renderPreview(); }); }
-function outputSize() {
-  const nw = S.img.naturalWidth, nh = S.img.naturalHeight;
-  const k = S.maxEdge ? Math.min(1, S.maxEdge / Math.max(nw, nh)) : 1;
-  return { w: Math.max(1, Math.round(nw * k)), h: Math.max(1, Math.round(nh * k)) };
-}
 function renderPreview() {
   updateSaveState();
   if (!S.img) return;
   const nw = S.img.naturalWidth, nh = S.img.naturalHeight, k = Math.min(1, 1600 / Math.max(nw, nh));
   renderTo(el.preview, Math.round(nw * k), Math.round(nh * k), false);
 }
-function updateSaveState() {
-  const hasPhoto = !!S.img, hasPlace = S.lat != null || S.addr.trim() || S.title.trim();
-  el.dlBtn.disabled = !(hasPhoto && hasPlace);
-  if (!hasPhoto) el.saveMsg.textContent = 'Choose a photo to begin.';
+function updateSaveState(keepMsg) {
+  const hasPhoto = items.length > 0, hasPlace = S.lat != null || S.addr.trim() || S.title.trim(), list = hasPhoto ? targets() : [], multi = list.length > 1;
+  if (!exporting) { el.dlBtn.textContent = multi ? 'Download ZIP' : 'Download image'; el.dlBtn.disabled = el.pdfBtn.disabled = !(hasPhoto && hasPlace); }
+  if (exporting || keepMsg) return;
+  if (!hasPhoto) el.saveMsg.textContent = 'Choose photos to begin.';
   else if (!hasPlace) el.saveMsg.textContent = 'Add a location to enable the download.';
-  else { const o = outputSize(); el.saveMsg.textContent = `${S.fmt.toUpperCase()} · ${o.w} × ${o.h} px`; }
+  else if (multi) el.saveMsg.textContent = `${photoWord(list.length)} \u00B7 ZIP of ${S.fmt.toUpperCase()}s, or one PDF`;
+  else { const it = list[0], o = sizeFor(it.w, it.h, S.maxEdge); el.saveMsg.textContent = `${S.fmt.toUpperCase()} \u00B7 ${o.w} \u00D7 ${o.h} px`; }
 }
 
-/* ================= file handling ================= */
-async function loadFile(file) { busy(true); try { await loadFileInner(file); } finally { busy(false); } }
-async function loadFileInner(file) {
-  if (!file) return;
-  const looksImage = /^image\//.test(file.type) || /\.(jpe?g|png|webp|gif|bmp|avif|heic|heif)$/i.test(file.name);
-  if (!looksImage) { setStatus(el.fileName, 'That file isn’t an image. Choose a JPEG, PNG or WebP photo.', true); return; }
-  const url = URL.createObjectURL(file), im = new Image();
-  im.src = url;
-  try { await im.decode(); }
-  catch (e) {
-    URL.revokeObjectURL(url);
-    setStatus(el.fileName, 'This browser can’t open that file. Try a JPEG, PNG or WebP version of the photo.', true);
-    return;
-  }
-  if (S.imgUrl) URL.revokeObjectURL(S.imgUrl);
-  S.img = im; S.imgUrl = url; S.fileName = file.name;
-  setStatus(el.fileName, `${file.name} · ${im.naturalWidth} × ${im.naturalHeight} px`);
-  el.stageName.textContent = file.name; el.stageDims.textContent = `${im.naturalWidth} × ${im.naturalHeight} px`;
+/* ================= photos (one or a batch) ================= */
+const MAX_PHOTOS = 60;
+let items = [], cur = -1, itemSeq = 0, showToken = 0, exporting = false;
+const isImageFile = f => /^image\//.test(f.type) || /\.(jpe?g|png|webp|gif|bmp|avif|heic|heif)$/i.test(f.name);
+const isJpegFile = f => /jpe?g/i.test(f.type) || /\.jpe?g$/i.test(f.name);
+const tick = () => new Promise(r => setTimeout(r, 0));
+async function decodeUrl(url) { const im = new Image(); im.src = url; await im.decode(); return im; }
+async function makeThumb(im) {
+  const n = 160, c = document.createElement('canvas'); c.width = c.height = n; const g = c.getContext('2d');
+  const k = Math.max(n / im.naturalWidth, n / im.naturalHeight), w = im.naturalWidth * k, h = im.naturalHeight * k;
+  g.imageSmoothingQuality = 'medium'; g.drawImage(im, (n - w) / 2, (n - h) / 2, w, h);
+  return c.toDataURL('image/jpeg', 0.72);
+}
+const whenFor = it => (S.useOwnTime && it && it.dt) ? { dt: it.dt, tz: it.tz != null ? it.tz : S.tz } : { dt: S.dt, tz: S.tz };
+const targets = () => (S.scope === 'one' || items.length < 2) ? (items[cur] ? [items[cur]] : []) : items.slice();
+const baseOf = it => (it.name || 'photo').replace(/\.[^.]+$/, '') || 'photo';
+const photoWord = n => `${n} photo${n === 1 ? '' : 's'}`;
+function updateFileStatus() {
+  setStatus(el.fileName, items.length ? `${photoWord(items.length)} chosen. They stay in this browser; nothing is uploaded.` : 'No photos chosen. They stay in this browser; nothing is uploaded.');
+}
+function markCurrent() { el.film.querySelectorAll('button').forEach((b, i) => { if (i === cur) b.setAttribute('aria-current', 'true'); else b.removeAttribute('aria-current'); }); }
+function renderFilm(newFrom) {
+  el.film.innerHTML = '';
+  items.forEach((it, i) => {
+    const li = document.createElement('li'), b = document.createElement('button'), img = new Image();
+    if (newFrom != null && i >= newFrom) { li.classList.add('new'); li.style.setProperty('--i', Math.min(i - newFrom, 12)); }
+    b.type = 'button'; b.setAttribute('aria-label', `Show photo ${i + 1} of ${items.length}: ${it.name}`);
+    img.alt = ''; img.src = it.thumb; b.appendChild(img);
+    b.addEventListener('click', () => selectItem(i));
+    li.appendChild(b); el.film.appendChild(li);
+  });
+  const many = items.length > 1;
+  el.film.hidden = !items.length; el.batchTools.hidden = !items.length;
+  el.prevBtn.hidden = el.nextBtn.hidden = !many; el.scopeWrap.hidden = !many;
+  el.rmBtn.textContent = many ? 'Remove this photo' : 'Remove photo';
+  el.pickBtn.textContent = items.length ? 'Add more photos' : 'Choose photos';
+  if (!many) S.scope = 'all';
+  document.querySelectorAll('input[name=scope]').forEach(r => { r.checked = r.value === S.scope; });
+  const all = document.querySelector('label[for=scope-all]'); if (all) all.textContent = `All ${items.length} photos`;
+  refreshOwnTime(); markCurrent();
+}
+function refreshOwnTime() {
+  const n = items.filter(i => i.dt).length;
+  el.useOwnTime.disabled = !n;
+  if (!n) { S.useOwnTime = false; el.useOwnTime.checked = false; }
+  el.ownTimeWrap.classList.toggle('off', !n);
+  el.ownTimeHint.hidden = !items.length;
+  el.ownTimeHint.textContent = n ? `${n} of ${photoWord(items.length)} ${n === 1 ? 'has' : 'have'} a date in the camera data.` : 'These photos have no date in their camera data, so the date above is used.';
+}
+async function selectItem(i) {
+  if (i < 0 || i >= items.length) return;
+  const my = ++showToken; cur = i; markCurrent();
+  const it = items[i];
+  let im; try { im = await decodeUrl(it.url); } catch (e) { setStatus(el.fileName, `Couldn’t open ${it.name}.`, true); return; }
+  if (my !== showToken) return;
+  S.img = im; S.fileName = it.name;
+  el.stageName.textContent = items.length > 1 ? `${i + 1} of ${items.length} · ${it.name}` : it.name;
+  el.stageDims.textContent = `${it.w} × ${it.h} px`;
   el.drop.hidden = true; el.preview.hidden = false; document.body.classList.add('has-photo');
   el.preview.classList.remove('pop'); void el.preview.offsetWidth; el.preview.classList.add('pop');
-  el.pickBtn.textContent = 'Replace photo';
-
-  el.exifNote.hidden = true;
-  if (/jpe?g/i.test(file.type) || /\.jpe?g$/i.test(file.name)) {
-    try {
-      const ex = readExif(await file.arrayBuffer());
-      if (ex) applyPhotoData(ex);
-    } catch (e) {}
-  }
-  await fontsReady;
-  schedule();
+  await fontsReady; schedule();
 }
-function applyPhotoData(ex) {
+async function addFiles(list) {
+  const all = [...list], files = all.filter(isImageFile);
+  if (!files.length) { setStatus(el.fileName, 'None of those files are images. Choose JPEG, PNG or WebP photos.', true); return; }
+  busy(true);
+  try {
+    const room = Math.max(0, MAX_PHOTOS - items.length), take = files.slice(0, room), first = items.length;
+    let failed = 0;
+    for (let i = 0; i < take.length; i++) {
+      setStatus(el.fileName, `Adding photo ${i + 1} of ${take.length}…`);
+      const f = take[i], url = URL.createObjectURL(f);
+      try {
+        const im = await decodeUrl(url);
+        const it = { id: ++itemSeq, file: f, name: f.name, url, w: im.naturalWidth, h: im.naturalHeight, thumb: await makeThumb(im), dt: '', tz: null, ex: null };
+        if (isJpegFile(f)) { try { const ex = readExif(await f.arrayBuffer()); if (ex) { it.ex = ex; if (ex.dt) { it.dt = ex.dt; it.tz = ex.tz != null ? ex.tz : null; } } } catch (e) {} }
+        items.push(it);
+      } catch (e) { URL.revokeObjectURL(url); failed++; }
+      await tick();
+    }
+    const added = items.length - first;
+    if (!added) { updateFileStatus(); setStatus(el.fileName, 'This browser couldn’t open those files. Try JPEG, PNG or WebP versions.', true); return; }
+    renderFilm(first);
+    await selectItem(first);
+    updateFileStatus();
+    const notes = [];
+    if (all.length - files.length) notes.push(`${photoWord(all.length - files.length).replace('photo', 'file')} skipped (not images)`);
+    if (failed) notes.push(`${failed} couldn’t be opened`);
+    if (files.length > take.length) notes.push(`only the first ${MAX_PHOTOS} photos are kept`);
+    if (notes.length) setStatus(el.fileName, `${photoWord(items.length)} chosen. ${notes.join('; ')}.`);
+    el.exifNote.hidden = true;
+    const withData = items.slice(first).find(x => x.ex);
+    if (withData) applyPhotoData(withData.ex, withData.name);
+  } finally { busy(false); }
+}
+function afterRemove() {
+  if (!items.length) {
+    cur = -1; showToken++; S.img = null; S.fileName = ''; S.scope = 'all';
+    el.preview.hidden = true; el.drop.hidden = false; document.body.classList.remove('has-photo');
+    el.stageName.textContent = 'Preview'; el.stageDims.textContent = ''; el.exifNote.hidden = true;
+    renderFilm(); updateFileStatus(); schedule(); return;
+  }
+  cur = Math.min(cur, items.length - 1); renderFilm(); updateFileStatus(); selectItem(cur);
+}
+function removeCurrent() { if (cur < 0) return; const [it] = items.splice(cur, 1); URL.revokeObjectURL(it.url); afterRemove(); }
+function clearAll() { items.forEach(i => URL.revokeObjectURL(i.url)); items = []; afterRemove(); }
+function stepItem(d) { if (items.length > 1) selectItem((cur + d + items.length) % items.length); }
+function applyPhotoData(ex, name) {
   const bits = [];
-  if (ex.lat != null && S.lat == null) {
-    bits.push('location');
-    setLocation(ex.lat, ex.lng, { zoom: 16 });
-  }
-  if (ex.dt && !S.dtTouched) {
-    bits.push('date and time');
-    el.dt.value = ex.dt; S.dt = ex.dt;
-    if (ex.tz != null) setTz(ex.tz);
-    refreshDfmtLabels();
-  }
+  if (ex.lat != null && S.lat == null) { bits.push('location'); setLocation(ex.lat, ex.lng, { zoom: 16 }); }
+  if (ex.dt && !S.dtTouched) { bits.push('date and time'); el.dt.value = ex.dt; S.dt = ex.dt; if (ex.tz != null) setTz(ex.tz); refreshDfmtLabels(); }
   if (bits.length) {
     el.exifNote.hidden = false;
-    el.exifNote.textContent = `This photo already carried a ${bits.join(' and ')}. They’re loaded as the starting point; change them below.`;
+    el.exifNote.textContent = `${items.length > 1 ? `“${name}”` : 'This photo'} already carried a ${bits.join(' and ')}. They’re loaded as the starting point; change them below.`;
   }
 }
 
@@ -1542,43 +1649,163 @@ function useMyLocation() {
     { enableHighAccuracy: true, timeout: 15000, maximumAge: 30000 });
 }
 
-/* ================= saving ================= */
-function baseName() { return (S.fileName || 'photo').replace(/\.[^.]+$/, '') || 'photo'; }
-async function makeBlob() {
-  const o = outputSize(), c = document.createElement('canvas'), jpeg = S.fmt === 'jpeg';
-  renderTo(c, o.w, o.h, jpeg);
-  const blob = await new Promise((res, rej) => c.toBlob(b => b ? res(b) : rej(new Error('encode')), jpeg ? 'image/jpeg' : 'image/png', S.quality / 100));
+/* ================= saving: images, ZIP and PDF ================= */
+const sizeFor = (w, h, cap) => { const k = cap ? Math.min(1, cap / Math.max(w, h)) : 1; return { w: Math.max(1, Math.round(w * k)), h: Math.max(1, Math.round(h * k)) }; };
+async function withImage(it, fn) { const im = await decodeUrl(it.url); try { return await fn(im); } finally { im.src = ''; } }
+/* Stamps one photo. opts: cap (px), jpeg (force JPEG), exif (false to skip), quality (0-100). */
+async function stampBlob(it, im, opts = {}) {
+  const cap = opts.cap != null ? opts.cap : S.maxEdge, o = sizeFor(it.w, it.h, cap), jpeg = opts.jpeg || S.fmt === 'jpeg';
+  const c = document.createElement('canvas');
+  renderTo(c, o.w, o.h, jpeg, im, stampData(it));
+  const blob = await new Promise((res, rej) => c.toBlob(b => b ? res(b) : rej(new Error('encode')), jpeg ? 'image/jpeg' : 'image/png', (opts.quality != null ? opts.quality : S.quality) / 100));
   c.width = c.height = 0;
-  if (jpeg && S.writeExif) {
-    const p = parseDT(S.dt);
-    if (p || S.lat != null) {
-      const seg = buildExifSegment({ lat: S.lat, lng: S.lng, p, tz: S.tz });
-      return new Blob([insertExif(await blob.arrayBuffer(), seg)], { type: 'image/jpeg' });
-    }
+  if (jpeg && S.writeExif && opts.exif !== false) {
+    const w = whenFor(it), p = parseDT(w.dt);
+    if (p || S.lat != null) return { blob: new Blob([insertExif(await blob.arrayBuffer(), buildExifSegment({ lat: S.lat, lng: S.lng, p, tz: w.tz }))], { type: 'image/jpeg' }), w: o.w, h: o.h };
   }
-  return blob;
+  return { blob, w: o.w, h: o.h };
+}
+function saveBlob(blob, name) {
+  const a = document.createElement('a'), u = URL.createObjectURL(blob);
+  a.href = u; a.download = name; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(u), 20000);
+}
+function uniqueName(name, used) {
+  if (!used.has(name)) { used.set(name, 1); return name; }
+  const n = used.get(name) + 1; used.set(name, n);
+  const dot = name.lastIndexOf('.'); return `${name.slice(0, dot)}-${n}${name.slice(dot)}`;
+}
+
+/* ZIP (stored, no compression: photos are already compressed) */
+const CRC_TABLE = (() => { const t = new Uint32Array(256); for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; } return t; })();
+function crc32(u8) { let c = 0xFFFFFFFF; for (let i = 0; i < u8.length; i++) c = CRC_TABLE[(c ^ u8[i]) & 255] ^ (c >>> 8); return (c ^ 0xFFFFFFFF) >>> 0; }
+function zipStore(files) {
+  const enc = new TextEncoder(), d = new Date(), time = (d.getHours() << 11) | (d.getMinutes() << 5) | (d.getSeconds() >> 1), date = ((d.getFullYear() - 1980) << 9) | ((d.getMonth() + 1) << 5) | d.getDate();
+  const parts = [], central = []; let offset = 0;
+  const u16 = n => [n & 255, (n >> 8) & 255], u32 = n => [n & 255, (n >>> 8) & 255, (n >>> 16) & 255, (n >>> 24) & 255];
+  for (const f of files) {
+    const name = enc.encode(f.name), crc = crc32(f.data), size = f.data.length;
+    const local = new Uint8Array([0x50, 0x4B, 3, 4, ...u16(20), ...u16(0x0800), ...u16(0), ...u16(time), ...u16(date), ...u32(crc), ...u32(size), ...u32(size), ...u16(name.length), ...u16(0)]);
+    parts.push(local, name, f.data);
+    central.push(new Uint8Array([0x50, 0x4B, 1, 2, ...u16(20), ...u16(20), ...u16(0x0800), ...u16(0), ...u16(time), ...u16(date), ...u32(crc), ...u32(size), ...u32(size), ...u16(name.length), ...u16(0), ...u16(0), ...u16(0), ...u16(0), ...u32(0), ...u32(offset)]), name);
+    offset += local.length + name.length + size;
+  }
+  const cdSize = central.reduce((a, b) => a + b.length, 0);
+  const end = new Uint8Array([0x50, 0x4B, 5, 6, ...u16(0), ...u16(0), ...u16(files.length), ...u16(files.length), ...u32(cdSize), ...u32(offset), ...u16(0)]);
+  return new Blob([...parts, ...central, end], { type: 'application/zip' });
+}
+
+/* PDF: each stamped photo is embedded as its JPEG bytes */
+const PDF_A4 = [595.28, 841.89];
+function layoutPdf(sizes, mode, per) {
+  const pages = [];
+  if (mode === 'photo') {
+    for (let i = 0; i < sizes.length; i++) { const k = PDF_A4[1] / Math.max(sizes[i].w, sizes[i].h), w = sizes[i].w * k, h = sizes[i].h * k; pages.push({ w, h, placements: [{ img: i, x: 0, y: 0, w, h }] }); }
+    return pages;
+  }
+  if (per === 1) {
+    const m = 24;
+    for (let i = 0; i < sizes.length; i++) {
+      const land = sizes[i].w > sizes[i].h, pw = land ? PDF_A4[1] : PDF_A4[0], ph = land ? PDF_A4[0] : PDF_A4[1];
+      const k = Math.min((pw - 2 * m) / sizes[i].w, (ph - 2 * m) / sizes[i].h), w = sizes[i].w * k, h = sizes[i].h * k;
+      pages.push({ w: pw, h: ph, placements: [{ img: i, x: (pw - w) / 2, y: (ph - h) / 2, w, h }] });
+    }
+    return pages;
+  }
+  const [pw, ph] = PDF_A4, m = 28, gap = 14, cols = per === 4 ? 2 : 1, rows = 2, cw = (pw - 2 * m - (cols - 1) * gap) / cols, ch = (ph - 2 * m - (rows - 1) * gap) / rows;
+  for (let s = 0; s < sizes.length; s += per) {
+    const placements = [];
+    for (let j = 0; j < per && s + j < sizes.length; j++) {
+      const sz = sizes[s + j], k = Math.min(cw / sz.w, ch / sz.h), w = sz.w * k, h = sz.h * k, col = j % cols, row = Math.floor(j / cols);
+      const x0 = m + col * (cw + gap), top = m + row * (ch + gap);
+      placements.push({ img: s + j, x: x0 + (cw - w) / 2, y: ph - (top + (ch - h) / 2) - h, w, h });
+    }
+    pages.push({ w: pw, h: ph, placements });
+  }
+  return pages;
+}
+function buildPdf(images, pages, title) {
+  const enc = s => new TextEncoder().encode(s), f = n => String(Math.round(n * 100) / 100);
+  const parts = [], offsets = []; let size = 0;
+  const push = u8 => { parts.push(u8); size += u8.length; };
+  const obj = (id, body) => { offsets[id] = size; push(enc(`${id} 0 obj\n`)); for (const b of body) push(typeof b === 'string' ? enc(b) : b); push(enc('\nendobj\n')); };
+  const n = images.length, imgId = i => 4 + i, pageId = p => 4 + n + p * 2, contId = p => pageId(p) + 1, total = 4 + n + pages.length * 2;
+  const now = new Date(), stamp = `${now.getUTCFullYear()}${pad2(now.getUTCMonth() + 1)}${pad2(now.getUTCDate())}${pad2(now.getUTCHours())}${pad2(now.getUTCMinutes())}${pad2(now.getUTCSeconds())}Z`;
+  push(new Uint8Array([0x25, 0x50, 0x44, 0x46, 0x2D, 0x31, 0x2E, 0x34, 0x0A, 0x25, 0xE2, 0xE3, 0xCF, 0xD3, 0x0A]));
+  obj(1, ['<< /Type /Catalog /Pages 2 0 R >>']);
+  obj(2, [`<< /Type /Pages /Kids [${pages.map((_, p) => `${pageId(p)} 0 R`).join(' ')}] /Count ${pages.length} >>`]);
+  obj(3, [`<< /Title (${title}) /Producer (Chumi Geo Tag) /CreationDate (D:${stamp}) >>`]);
+  images.forEach((im, i) => obj(imgId(i), [`<< /Type /XObject /Subtype /Image /Width ${im.w} /Height ${im.h} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${im.bytes.length} >>\nstream\n`, im.bytes, '\nendstream']));
+  pages.forEach((pg, p) => {
+    const used = [...new Set(pg.placements.map(pl => pl.img))];
+    obj(pageId(p), [`<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${f(pg.w)} ${f(pg.h)}] /Resources << /XObject << ${used.map(i => `/Im${i} ${imgId(i)} 0 R`).join(' ')} >> >> /Contents ${contId(p)} 0 R >>`]);
+    const cb = enc(pg.placements.map(pl => `q ${f(pl.w)} 0 0 ${f(pl.h)} ${f(pl.x)} ${f(pl.y)} cm /Im${pl.img} Do Q`).join('\n'));
+    obj(contId(p), [`<< /Length ${cb.length} >>\nstream\n`, cb, '\nendstream']);
+  });
+  const xref = size; let x = `xref\n0 ${total}\n0000000000 65535 f \n`;
+  for (let id = 1; id < total; id++) x += `${String(offsets[id]).padStart(10, '0')} 00000 n \n`;
+  push(enc(`${x}trailer\n<< /Size ${total} /Root 1 0 R /Info 3 0 R >>\nstartxref\n${xref}\n%%EOF\n`));
+  return new Blob(parts, { type: 'application/pdf' });
+}
+
+function setExporting(on, btn, label) {
+  exporting = on;
+  if (on) { busy(true); el.dlBtn.disabled = true; el.pdfBtn.disabled = true; if (btn) { btn.dataset.label = btn.textContent; btn.textContent = label; } }
+  else { busy(false); [el.dlBtn, el.pdfBtn].forEach(b => { if (b.dataset.label) { b.textContent = b.dataset.label; delete b.dataset.label; } }); updateSaveState(true); }
 }
 async function download() {
-  if (el.dlBtn.disabled) return;
-  busy(true); el.dlBtn.disabled = true; const label = el.dlBtn.textContent; el.dlBtn.textContent = 'Preparing…';
+  if (el.dlBtn.disabled || exporting) return;
+  const list = targets(), ext = S.fmt === 'jpeg' ? 'jpg' : 'png';
+  setExporting(true, el.dlBtn, 'Preparing…');
   try {
     await fontsReady;
-    const blob = await makeBlob(), a = document.createElement('a'), u = URL.createObjectURL(blob);
-    a.href = u; a.download = `${baseName()}-geotag.${S.fmt === 'jpeg' ? 'jpg' : 'png'}`;
-    document.body.appendChild(a); a.click(); a.remove();
-    setTimeout(() => URL.revokeObjectURL(u), 15000);
-    el.saveMsg.textContent = `Saved ${a.download} (${(blob.size / 1048576).toFixed(1)} MB).`;
-  } catch (e) {
-    el.saveMsg.textContent = 'Couldn’t create the image. Try the “Up to 4096 px” resolution, or a smaller photo.';
-  } finally { busy(false); el.dlBtn.textContent = label; updateDlOnly(); }
+    if (list.length === 1) {
+      const { blob } = await withImage(list[0], im => stampBlob(list[0], im)), name = `${baseOf(list[0])}-geotag.${ext}`;
+      saveBlob(blob, name); el.saveMsg.textContent = `Saved ${name} (${(blob.size / 1048576).toFixed(1)} MB).`;
+    } else {
+      const files = [], used = new Map();
+      for (let i = 0; i < list.length; i++) {
+        el.saveMsg.textContent = `Stamping photo ${i + 1} of ${list.length}…`;
+        const { blob } = await withImage(list[i], im => stampBlob(list[i], im));
+        files.push({ name: uniqueName(`${baseOf(list[i])}-geotag.${ext}`, used), data: new Uint8Array(await blob.arrayBuffer()) });
+        await tick();
+      }
+      const zip = zipStore(files); saveBlob(zip, `chumi-geo-tag-${list.length}-photos.zip`);
+      el.saveMsg.textContent = `Saved a ZIP of ${photoWord(list.length)} (${(zip.size / 1048576).toFixed(1)} MB).`;
+    }
+  } catch (e) { el.saveMsg.textContent = 'Couldn’t create the files. Try the “Up to 4096 px” resolution, or fewer photos at a time.'; }
+  finally { setExporting(false); }
 }
-function updateDlOnly() { const hasPlace = S.lat != null || S.addr.trim() || S.title.trim(); el.dlBtn.disabled = !(S.img && hasPlace); }
-async function share() {
+async function downloadPdf() {
+  if (el.pdfBtn.disabled || exporting) return;
+  const list = targets(), cap = S.maxEdge ? Math.min(S.maxEdge, 3600) : 0, quality = S.fmt === 'jpeg' ? S.quality : 92;
+  setExporting(true, el.pdfBtn, 'Building PDF…');
   try {
     await fontsReady;
-    const blob = await makeBlob(), file = new File([blob], `${baseName()}-geotag.${S.fmt === 'jpeg' ? 'jpg' : 'png'}`, { type: blob.type });
-    await navigator.share({ files: [file] });
-  } catch (e) { if (e && e.name !== 'AbortError') el.saveMsg.textContent = 'Couldn’t open the share sheet. Use Download image instead.'; }
+    const images = [];
+    for (let i = 0; i < list.length; i++) {
+      el.saveMsg.textContent = `Stamping photo ${i + 1} of ${list.length} for the PDF…`;
+      const r = await withImage(list[i], im => stampBlob(list[i], im, { cap, jpeg: true, exif: false, quality }));
+      images.push({ bytes: new Uint8Array(await r.blob.arrayBuffer()), w: r.w, h: r.h });
+      await tick();
+    }
+    const pages = layoutPdf(images, S.pdfPage, +S.pdfPer || 1), pdf = buildPdf(images, pages, 'Chumi Geo Tag');
+    saveBlob(pdf, list.length === 1 ? `${baseOf(list[0])}-geotag.pdf` : `chumi-geo-tag-${list.length}-photos.pdf`);
+    el.saveMsg.textContent = `Saved a PDF with ${pages.length} page${pages.length === 1 ? '' : 's'} (${(pdf.size / 1048576).toFixed(1)} MB).`;
+  } catch (e) { el.saveMsg.textContent = 'Couldn’t build the PDF. Try the “Up to 4096 px” resolution, or fewer photos at a time.'; }
+  finally { setExporting(false); }
+}
+async function share() {
+  if (exporting) return;
+  const list = targets(), ext = S.fmt === 'jpeg' ? 'jpg' : 'png';
+  setExporting(true); 
+  try {
+    await fontsReady;
+    const files = [], used = new Map();
+    for (const it of list) { const { blob } = await withImage(it, im => stampBlob(it, im)); files.push(new File([blob], uniqueName(`${baseOf(it)}-geotag.${ext}`, used), { type: blob.type })); }
+    await navigator.share({ files });
+  } catch (e) { if (e && e.name !== 'AbortError') el.saveMsg.textContent = 'Couldn’t open the share sheet. Use Download instead.'; }
+  finally { setExporting(false); }
 }
 
 /* ================= form wiring ================= */
@@ -1599,6 +1826,7 @@ function syncDependents() {
   const text = S.layout === 'text';
   el.showMap.disabled = text; el.chkMapWrap.classList.toggle('off', text);
   document.querySelectorAll('input[name=mapDesign]').forEach(i => { i.disabled = text || !S.showMap; });
+  el.pdfPer.disabled = S.pdfPage === 'photo'; el.pdfPerWrap.classList.toggle('off', S.pdfPage === 'photo');
   const png = S.fmt === 'png';
   el.qualityWrap.hidden = png; el.writeExif.disabled = png; el.exifWrap.classList.toggle('off', png);
 }
@@ -1812,7 +2040,7 @@ function initSite() {
 }
 
 function init() {
-  ['pickBtn','pickBtn2','file','q','findBtn','qStatus','results','map','coordText','locateBtn','title','addr','resetAddr','note','dt','nowBtn','tz','dfmt','scale','scaleOut','showMap','chkMapWrap','showCoords','showDate','coordFmt','quality','qualityOut','qualityWrap','maxEdge','writeExif','exifWrap','drop','preview','stageName','stageDims','stageBody','saveMsg','dlBtn','shareBtn','fileName','exifNote']
+  ['pickBtn','pickBtn2','file','q','findBtn','qStatus','results','map','coordText','locateBtn','title','addr','resetAddr','note','dt','nowBtn','tz','dfmt','scale','scaleOut','showMap','chkMapWrap','showCoords','showDate','coordFmt','quality','qualityOut','qualityWrap','maxEdge','writeExif','exifWrap','drop','preview','stageName','stageDims','stageBody','saveMsg','dlBtn','shareBtn','fileName','exifNote','film','batchTools','rmBtn','clearBtn','prevBtn','nextBtn','scopeWrap','pdfBtn','pdfPage','pdfPer','pdfPerWrap','useOwnTime','ownTimeWrap','ownTimeHint']
     .forEach(id => el[id] = $(id));
   loadSettings();
 
@@ -1827,15 +2055,17 @@ function init() {
   el.dfmt.addEventListener('change', () => { S.dfmt = el.dfmt.value; saveSettings(); schedule(); });
 
   // style
-  bindRadios('layout', 'layout'); bindRadios('pos', 'pos'); bindRadios('theme', 'theme'); bindRadios('fmt', 'fmt'); bindRadios('mapDesign', 'mapDesign');
-  bindCheck('showMap', 'showMap'); bindCheck('showCoords', 'showCoords'); bindCheck('showDate', 'showDate'); bindCheck('writeExif', 'writeExif');
+  bindRadios('layout', 'layout'); bindRadios('pos', 'pos'); bindRadios('theme', 'theme'); bindRadios('fmt', 'fmt'); bindRadios('mapDesign', 'mapDesign'); bindRadios('scope', 'scope');
+  bindCheck('showMap', 'showMap'); bindCheck('showCoords', 'showCoords'); bindCheck('showDate', 'showDate'); bindCheck('writeExif', 'writeExif'); bindCheck('useOwnTime', 'useOwnTime');
+  el.pdfPage.value = S.pdfPage; el.pdfPage.addEventListener('change', () => { S.pdfPage = el.pdfPage.value; syncDependents(); saveSettings(); });
+  el.pdfPer.value = S.pdfPer; el.pdfPer.addEventListener('change', () => { S.pdfPer = el.pdfPer.value; saveSettings(); });
   el.scale.value = Math.round(S.scale * 100); el.scaleOut.textContent = el.scale.value + '%';
   el.scale.addEventListener('input', () => { S.scale = +el.scale.value / 100; el.scaleOut.textContent = el.scale.value + '%'; saveSettings(); schedule(); });
   el.quality.value = S.quality; el.qualityOut.textContent = S.quality;
   el.quality.addEventListener('input', () => { S.quality = +el.quality.value; el.qualityOut.textContent = S.quality; saveSettings(); });
   el.coordFmt.value = S.coordFmt; el.coordFmt.addEventListener('change', () => { S.coordFmt = el.coordFmt.value; saveSettings(); schedule(); });
   el.maxEdge.value = String(S.maxEdge); el.maxEdge.addEventListener('change', () => { S.maxEdge = +el.maxEdge.value; saveSettings(); schedule(); });
-  syncDependents(); renderMapPicker();
+  syncDependents(); renderMapPicker(); renderFilm();
 
   // text
   el.title.addEventListener('input', () => { S.title = el.title.value; S.titleDirty = true; schedule(); });
@@ -1852,17 +2082,19 @@ function init() {
   // file
   const pick = () => el.file.click();
   el.pickBtn.addEventListener('click', pick); el.pickBtn2.addEventListener('click', pick);
-  el.file.addEventListener('change', () => { loadFile(el.file.files[0]); el.file.value = ''; });
+  el.file.addEventListener('change', () => { const picked = [...el.file.files]; el.file.value = ''; addFiles(picked); });
   window.addEventListener('dragover', e => { e.preventDefault(); if (!el.drop.hidden) el.drop.classList.add('over'); });
   window.addEventListener('dragleave', e => { if (!e.relatedTarget) el.drop.classList.remove('over'); });
-  window.addEventListener('drop', e => { e.preventDefault(); el.drop.classList.remove('over'); const f = e.dataTransfer && e.dataTransfer.files[0]; if (f) loadFile(f); });
-  window.addEventListener('paste', e => { const f = e.clipboardData && [...e.clipboardData.files].find(x => /^image\//.test(x.type)); if (f) loadFile(f); });
+  window.addEventListener('drop', e => { e.preventDefault(); el.drop.classList.remove('over'); const fl = e.dataTransfer ? [...e.dataTransfer.files] : []; if (fl.length) addFiles(fl); });
+  window.addEventListener('paste', e => { const fl = e.clipboardData ? [...e.clipboardData.files].filter(x => /^image\//.test(x.type)) : []; if (fl.length) addFiles(fl); });
+  el.prevBtn.addEventListener('click', () => stepItem(-1)); el.nextBtn.addEventListener('click', () => stepItem(1));
+  el.rmBtn.addEventListener('click', removeCurrent); el.clearBtn.addEventListener('click', clearAll);
 
   // save
-  el.dlBtn.addEventListener('click', download);
+  el.dlBtn.addEventListener('click', download); el.pdfBtn.addEventListener('click', downloadPdf);
   try { if (navigator.canShare && navigator.canShare({ files: [new File([new Blob(['x'])], 'x.jpg', { type: 'image/jpeg' })] })) { el.shareBtn.hidden = false; el.shareBtn.addEventListener('click', share); } } catch (e) {}
 
-  window.addEventListener('beforeunload', () => { if (S.imgUrl) URL.revokeObjectURL(S.imgUrl); });
+  window.addEventListener('beforeunload', () => { items.forEach(i => URL.revokeObjectURL(i.url)); });
   fontsReady.then(schedule);
   schedule();
   initSite();

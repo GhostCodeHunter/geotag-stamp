@@ -12,6 +12,7 @@ It is one static page, built in plain HTML, CSS and JavaScript. It runs entirely
 - **Date and time:** any date, time and time zone, in four date styles.
 - **Real geotag in the file:** JPEG downloads also carry the GPS position, date and time zone in their EXIF data, so gallery apps and maps place the photo correctly.
 - **Removes the old geotag:** if a photo already has a location in its data (EXIF), it is dropped automatically and a note says so. The old coordinates are never kept or reused, and the saved file carries only the location you set. A date already in the camera data still loads as the starting point for the date field.
+- **Replaces an old stamp drawn on the picture:** if a photo already has a stamp burned into it (a flat dark or light panel with text along the bottom, up to 40% of the height), it is detected automatically and covered with a continuation of its surroundings before your stamp goes on. You can instead crop it off, leave it, adjust its height with a slider, or mark one by hand on a photo where none was found. The picture hidden under an old stamp can't be recovered, so the original plain photo, if you have it, will always give a better result.
 - **Batches:** choose, drop or paste many photos at once (up to 60). Thumbnails let you check each one, with previous and next arrows on the preview. The same place, text, style and date go on every photo. Optionally keep each photo's own date and time when its camera data has one.
 - **Output:** JPEG (quality control) or PNG, capped at 4096 px on the long side or at the original size. A batch downloads as one ZIP of stamped photos, or as one **PDF**: A4 pages with 1, 2 or 4 photos each, or pages shaped like each photo. "Only this one" saves just the photo you are looking at.
 - **Landing page, About and copyright details:** the site opens on a short landing page (a live sample of the stamp, how it works, About, credits and licences). The tool itself is at `#app`, for example `https://<your-username>.github.io/geotag-stamp/#app`.
@@ -102,6 +103,7 @@ pyftsubset InstrumentSans-Regular.ttf --unicodes="U+0020-007E,U+00A0-00FF,U+2013
 
 ## Limits
 
+- Old-stamp detection looks for a panel along the bottom of the photo. Text-only stamps and very large stamps may not be found; use "Mark one by hand" for those.
 - A batch holds up to 60 photos. Photos are decoded one at a time while saving, to keep memory low on phones, so a big batch of full-size photos can take a while.
 - PDF pages hold the stamped photos as JPEGs; the location and time in the file data (EXIF) go into ZIP and image downloads, not the PDF.
 - Short Google links (`maps.app.goo.gl`) cannot be opened from a web page. Paste the full link from the browser's address bar instead.

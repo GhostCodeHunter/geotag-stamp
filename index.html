@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Chumi Geo Tag: add location, address and time to a photo</title>
 <meta name="description" content="Upload a photo, set a place from an address, Google Maps link or map pin, pick a date and time, and download the photo with a geotag stamp.">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-ms+7huSt7ZdcThtowd6cpAr9DwLEHDfbQ9c1kbw1w/0='; style-src 'sha256-W/iIKtZaN3H56IOx1ItBpcpE6M09IGtGduze1LZNrak='; img-src 'self' data: blob: https://tile.openstreetmap.org https://server.arcgisonline.com; font-src data:; connect-src https://nominatim.openstreetmap.org https://photon.komoot.io; base-uri 'none'; form-action 'none'; object-src 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-tbVzjt5gke/vEcSkhD/H/khuEHcU4ra+HDJqiCrY4UY='; style-src 'sha256-sED5OZBdEnctDEn+AV7aOMcOd0DVNBlYqXY/jsXTH2Q='; img-src 'self' data: blob: https://tile.openstreetmap.org https://server.arcgisonline.com; font-src data:; connect-src https://nominatim.openstreetmap.org https://photon.komoot.io; base-uri 'none'; form-action 'none'; object-src 'none'">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <meta name="theme-color" content="#E8EBE6">
 <meta property="og:type" content="website">
@@ -413,6 +413,9 @@ dialog.closing::backdrop{animation:fadeOut .18s ease-in both}
 .drop{flex:0 1 auto;margin:auto;width:min(100%,600px);padding:clamp(24px,4vw,48px)}
 @media (max-width:959px){.drop{padding:28px 20px;min-height:0}}
 @media (prefers-reduced-motion:reduce){.maproute,.maproute[data-dir=y]{clip-path:none}}
+
+.oldbox{display:flex;flex-direction:column;gap:12px}
+.oldbox > div{display:flex;flex-direction:column;gap:12px}
 </style>
 </head>
 <body>
@@ -481,7 +484,7 @@ dialog.closing::backdrop{animation:fadeOut .18s ease-in both}
             <div class="reveal r1"><dt>Reads Google Maps links.</dt><dd>Paste a place link, a link with coordinates, or plain latitude and longitude. The pin lands where it should.</dd></div>
             <div class="reveal r2"><dt>Writes a real geotag.</dt><dd>JPEG downloads carry the GPS position, date and time zone in the file, so gallery apps and maps place the photo correctly.</dd></div>
             <div class="reveal r3"><dt>Stamps a whole batch.</dt><dd>Add many photos at once. The same place goes on every one. Save them as a ZIP, or as a PDF with one, two or four photos per page.</dd></div>
-            <div class="reveal r3"><dt>Removes the old geotag.</dt><dd>If a photo already carries a location, it is dropped automatically. The saved file holds only the place you chose.</dd></div>
+            <div class="reveal r3"><dt>Removes the old geotag.</dt><dd>A location hidden in the photo's data is dropped automatically. A stamp already drawn on the picture is found and covered or cropped off before yours goes on.</dd></div>
             <div class="reveal r4"><dt>Private by design.</dt><dd>Your photo is never uploaded. The page can only talk to the map and address services, and nothing else.</dd></div>
           </dl>
         </div>
@@ -574,6 +577,29 @@ dialog.closing::backdrop{animation:fadeOut .18s ease-in both}
         <button type="button" class="btn quiet" id="clearBtn">Clear all</button>
       </div>
       <p class="hint" id="exifNote" hidden></p>
+      <div class="oldbox" id="oldBox" hidden>
+        <div id="oldFound" hidden>
+          <p class="hint" id="oldNote"></p>
+          <fieldset>
+            <legend>Old stamp on this photo</legend>
+            <div class="seg" role="radiogroup">
+              <input type="radio" name="oldMode" id="old-cover" value="cover" checked><label for="old-cover">Cover it</label>
+              <input type="radio" name="oldMode" id="old-crop" value="crop"><label for="old-crop">Crop it off</label>
+              <input type="radio" name="oldMode" id="old-off" value="off"><label for="old-off">Leave it</label>
+            </div>
+          </fieldset>
+          <div class="group" id="oldHeightWrap">
+            <label for="oldH">Height of the old stamp</label>
+            <div class="range"><input type="range" id="oldH" min="4" max="50" step="0.5" value="25"><output id="oldHOut" for="oldH">25%</output></div>
+          </div>
+          <button type="button" class="linkbtn" id="oldClear">This isn't a stamp: clear the mark</button>
+          <p class="hint">The picture hidden under an old stamp can't be recovered, so the stamp is covered with a continuation of its surroundings, or cropped off.</p>
+        </div>
+        <div id="oldNone" hidden>
+          <p class="hint">No old stamp drawn on this photo.</p>
+          <button type="button" class="linkbtn" id="oldMark">Mark one by hand</button>
+        </div>
+      </div>
     </section>
 
     <section aria-labelledby="h-loc">
@@ -796,7 +822,7 @@ function setStatus(el, text, bad) { el.textContent = text || ''; el.classList.to
 
 /* ================= state ================= */
 const S = {
-  img: null, fileName: '', scope: 'all', pdfPage: 'a4', pdfPer: '1', useOwnTime: false,
+  img: null, fileName: '', scope: 'all', pdfPage: 'a4', pdfPer: '1', useOwnTime: false, oldMode: 'cover',
   lat: null, lng: null,
   title: '', addr: '', note: '',
   addrDirty: false, titleDirty: false, foundAddr: '', foundTitle: '', approx: false,
@@ -1435,13 +1461,79 @@ function drawStamp(ctx, W, H, st = S, d = stampData(), variants = thumbVariants)
     if (i < blocks.length - 1) y += 0.55 * s;
   });
 }
-function renderTo(canvas, W, H, forJpeg, img = S.img, d) {
+function renderTo(canvas, W, H, forJpeg, img = S.img, d, it = items[cur]) {
   canvas.width = W; canvas.height = H;
   const ctx = canvas.getContext('2d');
   ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
   if (forJpeg) { ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, W, H); }
-  ctx.drawImage(img, 0, 0, W, H);
+  const top = oldTop(it);
+  if (top != null && S.oldMode === 'crop') ctx.drawImage(img, 0, 0, img.naturalWidth, top, 0, 0, W, H);
+  else { ctx.drawImage(img, 0, 0, W, H); if (top != null) coverOldStamp(ctx, img, top, W, H); }
   drawStamp(ctx, W, H, S, d);
+}
+
+/* ================= an old stamp already drawn on a photo ================= */
+/* Looks for a straight, sharp dark (or light) band edge in the lower half that spans a good part of the width and
+   has text-like marks inside it. Returns the stamp's height as a percentage of the photo, or null. */
+function detectOldStamp(img) {
+  const W0 = img.naturalWidth, H0 = img.naturalHeight; if (W0 < 240 || H0 < 240) return null;
+  const k = Math.min(1, 360 / W0), w = Math.round(W0 * k), h = Math.round(H0 * k);
+  const c = document.createElement('canvas'); c.width = w; c.height = h;
+  const g = c.getContext('2d', { willReadFrequently: true }); g.drawImage(img, 0, 0, w, h);
+  let px; try { px = g.getImageData(0, 0, w, h).data; } catch (e) { return null; }
+  const L = new Float32Array(w * h);
+  for (let i = 0; i < w * h; i++) L[i] = 0.299 * px[i * 4] + 0.587 * px[i * 4 + 1] + 0.114 * px[i * 4 + 2];
+  const T = 12, minRun = Math.round(w * 0.4), d = new Float32Array(w), hit = new Uint8Array(w);
+  const longestRun = hh => { let a = 0, b = -1, start = -1, miss = 0; for (let x = 0; x < hh.length; x++) { if (hh[x]) { if (start < 0) start = x; miss = 0; if (x - start > b - a) { a = start; b = x; } } else if (start >= 0 && ++miss > 2) { start = -1; miss = 0; } } return [a, b]; };
+  // 1. every row with a long, straight, sharp step (dark below = dark stamp, light below = light stamp)
+  const cands = [];
+  for (const sign of [-1, 1]) for (let y = Math.round(h * 0.6); y < h - 8; y++) {
+    for (let x = 0; x < w; x++) { let up = 0, dn = 0; for (let j = 1; j <= 3; j++) { up += L[(y - j) * w + x]; dn += L[(y + j) * w + x]; } d[x] = sign * (dn - up) / 3; hit[x] = d[x] > T ? 1 : 0; }
+    const [a, b] = longestRun(hit), len = b - a + 1; if (len < minRun) continue;
+    let sum = 0, n = 0; for (let x = a; x <= b; x++) if (hit[x]) { sum += d[x]; n++; }
+    cands.push({ y, sign, a, b, score: len * (sum / n) });
+  }
+  // 2. rows that touch form one edge; keep the strongest row of each
+  const edges = []; let run = null;
+  for (const c of cands) { if (run && c.sign === run.sign && c.y - run.lastY <= 3) { run.lastY = c.y; if (c.score > run.best.score) run.best = c; } else { if (run) edges.push(run.best); run = { sign: c.sign, lastY: c.y, best: c }; } }
+  if (run) edges.push(run.best);
+  edges.sort((p, q) => p.y - q.y);   // the stamp's top edge is the highest edge that passes: marks inside the stamp (text lines) lie below it
+  const med = (e, y0, y1) => { const arr = []; for (let y = Math.max(1, y0); y < y1; y++) for (let x = e.a; x <= e.b; x += 2) arr.push(Math.abs(L[y * w + x] - L[(y - 1) * w + x])); arr.sort((p, q) => p - q); return arr.length ? arr[arr.length >> 1] : 0; };
+  // 3. an edge counts as a stamp only if what lies below it looks like a flat panel with text on it
+  for (const e of edges) {
+    const rows = h - e.y - 4; if (rows < h * 0.05 || rows > h * 0.4) continue;
+    let sum = 0, n = 0; for (let y = e.y + 3; y < h; y++) for (let x = e.a; x <= e.b; x++) { sum += L[y * w + x]; n++; }
+    const mean = sum / n; let marks = 0;
+    for (let y = e.y + 3; y < h; y++) for (let x = e.a; x <= e.b; x++) { const v = L[y * w + x]; if (e.sign < 0 ? v > mean + 70 : v < mean - 70) marks++; }
+    if (marks / n < 0.006) continue;
+    if (med(e, e.y + 3, h) > 0.65 * (med(e, e.y - 3 - rows, e.y - 3) + 0.5)) continue;   // flatter than the photo above it
+    const top = Math.max(0, Math.round(e.y / k) - 3);
+    return { pct: Math.round((H0 - top) / H0 * 1000) / 10 };
+  }
+  return null;
+}
+const oldTop = it => (it && it.stamp && S.oldMode !== 'off') ? Math.round(it.h * (1 - it.stamp.pct / 100)) : null;
+const effH = it => (S.oldMode === 'crop' && oldTop(it) != null) ? Math.max(1, oldTop(it)) : it.h;
+/* Cover: continue the colours just above the old stamp downward as a soft field, so the new stamp sits on a clean ground. */
+function coverOldStamp(ctx, img, top, W, H) {
+  const y0 = Math.round(top / img.naturalHeight * H); if (y0 >= H - 1) return;
+  const band = Math.max(3, Math.round(img.naturalHeight * 0.012)), sy = Math.max(0, top - band - 4);
+  const t = document.createElement('canvas'); t.width = 28; t.height = 6;
+  const tg = t.getContext('2d'); tg.imageSmoothingQuality = 'high'; tg.drawImage(img, 0, sy, img.naturalWidth, band, 0, 0, t.width, t.height);
+  ctx.drawImage(t, 0, 0, t.width, t.height, 0, y0, W, H - y0);
+}
+let guideOn = false, guideT = 0;
+function showGuide() { guideOn = true; clearTimeout(guideT); guideT = setTimeout(() => { guideOn = false; schedule(); }, 2200); schedule(); }
+function renderOldBox() {
+  const it = items[cur]; el.oldBox.hidden = !it; if (!it) return;
+  const has = !!it.stamp;
+  el.oldFound.hidden = !has; el.oldNone.hidden = has;
+  document.querySelectorAll('input[name=oldMode]').forEach(r => { r.checked = r.value === S.oldMode; });
+  if (has) {
+    el.oldH.value = it.stamp.pct; el.oldHOut.textContent = `${Math.round(it.stamp.pct)}%`;
+    el.oldNote.textContent = it.stamp.auto ? `Found an old stamp at the bottom of this photo, about ${Math.round(it.stamp.pct)}% of its height.` : `Old stamp marked by hand, ${Math.round(it.stamp.pct)}% of the height.`;
+    el.oldHeightWrap.hidden = S.oldMode === 'off';
+  }
 }
 
 /* ================= preview ================= */
@@ -1451,8 +1543,9 @@ function schedule() { if (!rafId) rafId = requestAnimationFrame(() => { rafId = 
 function renderPreview() {
   updateSaveState();
   if (!S.img) return;
-  const nw = S.img.naturalWidth, nh = S.img.naturalHeight, k = Math.min(1, 1600 / Math.max(nw, nh));
+  const it = items[cur], nw = S.img.naturalWidth, nh = effH(it), k = Math.min(1, 1600 / Math.max(nw, nh));
   renderTo(el.preview, Math.round(nw * k), Math.round(nh * k), false);
+  if (guideOn && S.oldMode === 'cover') { const top = oldTop(it); if (top != null) { const g = el.preview.getContext('2d'); g.fillStyle = ACCENT; g.fillRect(0, Math.round(top / it.h * el.preview.height) - 2, el.preview.width, 4); } }   /* preview-only guide */
 }
 function updateSaveState(keepMsg) {
   const hasPhoto = items.length > 0, hasPlace = S.lat != null || S.addr.trim() || S.title.trim(), list = hasPhoto ? targets() : [], multi = list.length > 1;
@@ -1461,7 +1554,7 @@ function updateSaveState(keepMsg) {
   if (!hasPhoto) el.saveMsg.textContent = 'Choose photos to begin.';
   else if (!hasPlace) el.saveMsg.textContent = 'Add a location to enable the download.';
   else if (multi) el.saveMsg.textContent = `${photoWord(list.length)} \u00B7 ZIP of ${S.fmt.toUpperCase()}s, or one PDF`;
-  else { const it = list[0], o = sizeFor(it.w, it.h, S.maxEdge); el.saveMsg.textContent = `${S.fmt.toUpperCase()} \u00B7 ${o.w} \u00D7 ${o.h} px`; }
+  else { const it = list[0], o = sizeFor(it.w, effH(it), S.maxEdge); el.saveMsg.textContent = `${S.fmt.toUpperCase()} \u00B7 ${o.w} \u00D7 ${o.h} px`; }
 }
 
 /* ================= photos (one or a batch) ================= */
@@ -1503,7 +1596,7 @@ function renderFilm(newFrom) {
   if (!many) S.scope = 'all';
   document.querySelectorAll('input[name=scope]').forEach(r => { r.checked = r.value === S.scope; });
   const all = document.querySelector('label[for=scope-all]'); if (all) all.textContent = `All ${items.length} photos`;
-  refreshOwnTime(); markCurrent();
+  refreshOwnTime(); markCurrent(); renderOldBox();
 }
 function refreshOwnTime() {
   const n = items.filter(i => i.dt).length;
@@ -1515,7 +1608,7 @@ function refreshOwnTime() {
 }
 async function selectItem(i) {
   if (i < 0 || i >= items.length) return;
-  const my = ++showToken; cur = i; markCurrent();
+  const my = ++showToken; cur = i; markCurrent(); renderOldBox();
   const it = items[i];
   let im; try { im = await decodeUrl(it.url); } catch (e) { setStatus(el.fileName, `Couldn’t open ${it.name}.`, true); return; }
   if (my !== showToken) return;
@@ -1538,7 +1631,8 @@ async function addFiles(list) {
       const f = take[i], url = URL.createObjectURL(f);
       try {
         const im = await decodeUrl(url);
-        const it = { id: ++itemSeq, file: f, name: f.name, url, w: im.naturalWidth, h: im.naturalHeight, thumb: await makeThumb(im), dt: '', tz: null, hadGps: false };
+        const it = { id: ++itemSeq, file: f, name: f.name, url, w: im.naturalWidth, h: im.naturalHeight, thumb: await makeThumb(im), dt: '', tz: null, hadGps: false, stamp: null };
+        const sd = detectOldStamp(im); if (sd) it.stamp = { pct: sd.pct, auto: true };
         if (isJpegFile(f)) { try { const ex = readExif(await f.arrayBuffer()); if (ex) { it.hadGps = ex.lat != null; if (ex.dt) { it.dt = ex.dt; it.tz = ex.tz != null ? ex.tz : null; } } /* the old coordinates are never kept */ } catch (e) {} }
         items.push(it);
       } catch (e) { URL.revokeObjectURL(url); failed++; }
@@ -1580,6 +1674,8 @@ function showPhotoNotes(fresh) {
     el.dt.value = dated.dt; S.dt = dated.dt; if (dated.tz != null) setTz(dated.tz); refreshDfmtLabels();
     parts.push(`The date and time from ${fresh.length > 1 ? `\u201C${dated.name}\u201D` : 'the photo'} were loaded as the starting point.`);
   }
+  const stamped = fresh.filter(x => x.stamp).length;
+  if (stamped) parts.push(stamped === 1 ? 'An old stamp was found on the picture and is covered by the new one (see below).' : `Old stamps were found on ${stamped} of the photos and are covered by the new one (see below).`);
   el.exifNote.hidden = !parts.length; el.exifNote.textContent = parts.join(' ');
 }
 
@@ -1676,9 +1772,9 @@ const sizeFor = (w, h, cap) => { const k = cap ? Math.min(1, cap / Math.max(w, h
 async function withImage(it, fn) { const im = await decodeUrl(it.url); try { return await fn(im); } finally { im.src = ''; } }
 /* Stamps one photo. opts: cap (px), jpeg (force JPEG), exif (false to skip), quality (0-100). */
 async function stampBlob(it, im, opts = {}) {
-  const cap = opts.cap != null ? opts.cap : S.maxEdge, o = sizeFor(it.w, it.h, cap), jpeg = opts.jpeg || S.fmt === 'jpeg';
+  const cap = opts.cap != null ? opts.cap : S.maxEdge, o = sizeFor(it.w, effH(it), cap), jpeg = opts.jpeg || S.fmt === 'jpeg';
   const c = document.createElement('canvas');
-  renderTo(c, o.w, o.h, jpeg, im, stampData(it));
+  renderTo(c, o.w, o.h, jpeg, im, stampData(it), it);
   const blob = await new Promise((res, rej) => c.toBlob(b => b ? res(b) : rej(new Error('encode')), jpeg ? 'image/jpeg' : 'image/png', (opts.quality != null ? opts.quality : S.quality) / 100));
   c.width = c.height = 0;
   if (jpeg && S.writeExif && opts.exif !== false) {
@@ -2153,7 +2249,7 @@ function initSite() {
 }
 
 function init() {
-  ['pickBtn','pickBtn2','file','q','findBtn','qStatus','results','map','coordText','locateBtn','title','addr','resetAddr','note','dt','nowBtn','tz','dfmt','scale','scaleOut','showMap','chkMapWrap','showCoords','showDate','coordFmt','quality','qualityOut','qualityWrap','maxEdge','writeExif','exifWrap','drop','preview','stageName','stageDims','stageBody','saveMsg','dlBtn','shareBtn','fileName','exifNote','film','batchTools','rmBtn','clearBtn','prevBtn','nextBtn','scopeWrap','pdfBtn','pdfPage','pdfPer','pdfPerWrap','useOwnTime','ownTimeWrap','ownTimeHint']
+  ['pickBtn','pickBtn2','file','q','findBtn','qStatus','results','map','coordText','locateBtn','title','addr','resetAddr','note','dt','nowBtn','tz','dfmt','scale','scaleOut','showMap','chkMapWrap','showCoords','showDate','coordFmt','quality','qualityOut','qualityWrap','maxEdge','writeExif','exifWrap','drop','preview','stageName','stageDims','stageBody','saveMsg','dlBtn','shareBtn','fileName','exifNote','film','batchTools','rmBtn','clearBtn','prevBtn','nextBtn','scopeWrap','pdfBtn','pdfPage','pdfPer','pdfPerWrap','useOwnTime','ownTimeWrap','ownTimeHint','oldBox','oldFound','oldNone','oldNote','oldH','oldHOut','oldHeightWrap','oldClear','oldMark']
     .forEach(id => el[id] = $(id));
   loadSettings();
 
@@ -2168,7 +2264,7 @@ function init() {
   el.dfmt.addEventListener('change', () => { S.dfmt = el.dfmt.value; saveSettings(); schedule(); });
 
   // style
-  bindRadios('layout', 'layout'); bindRadios('pos', 'pos'); bindRadios('theme', 'theme'); bindRadios('fmt', 'fmt'); bindRadios('mapDesign', 'mapDesign'); bindRadios('scope', 'scope');
+  bindRadios('layout', 'layout'); bindRadios('pos', 'pos'); bindRadios('theme', 'theme'); bindRadios('fmt', 'fmt'); bindRadios('mapDesign', 'mapDesign'); bindRadios('scope', 'scope'); bindRadios('oldMode', 'oldMode', () => { renderOldBox(); showGuide(); });
   bindCheck('showMap', 'showMap'); bindCheck('showCoords', 'showCoords'); bindCheck('showDate', 'showDate'); bindCheck('writeExif', 'writeExif'); bindCheck('useOwnTime', 'useOwnTime');
   el.pdfPage.value = S.pdfPage; el.pdfPage.addEventListener('change', () => { S.pdfPage = el.pdfPage.value; syncDependents(); saveSettings(); });
   el.pdfPer.value = S.pdfPer; el.pdfPer.addEventListener('change', () => { S.pdfPer = el.pdfPer.value; saveSettings(); });
@@ -2202,6 +2298,9 @@ function init() {
   window.addEventListener('paste', e => { const fl = e.clipboardData ? [...e.clipboardData.files].filter(x => /^image\//.test(x.type)) : []; if (fl.length) addFiles(fl); });
   el.prevBtn.addEventListener('click', () => stepItem(-1)); el.nextBtn.addEventListener('click', () => stepItem(1));
   el.rmBtn.addEventListener('click', removeCurrent); el.clearBtn.addEventListener('click', clearAll);
+  el.oldH.addEventListener('input', () => { const it = items[cur]; if (!it || !it.stamp) return; it.stamp.pct = +el.oldH.value; el.oldHOut.textContent = `${Math.round(it.stamp.pct)}%`; showGuide(); });
+  el.oldClear.addEventListener('click', () => { const it = items[cur]; if (it) { it.stamp = null; renderOldBox(); schedule(); } });
+  el.oldMark.addEventListener('click', () => { const it = items[cur]; if (it) { it.stamp = { pct: 25, auto: false }; if (S.oldMode === 'off') S.oldMode = 'cover'; renderOldBox(); showGuide(); } });
 
   // save
   el.dlBtn.addEventListener('click', download); el.pdfBtn.addEventListener('click', downloadPdf);

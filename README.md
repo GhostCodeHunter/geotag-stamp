@@ -8,11 +8,15 @@ It is one static page, built in plain HTML, CSS and JavaScript. It runs entirely
 
 - **Location from anything:** an address, a full Google Maps link (place links, `?q=`, `ll=`, `@lat,lng`), plain or degrees-minutes-seconds coordinates, a click or drag on the map, or your device location.
 - **Stamp on the photo:** place name, address, coordinates, date and time, an optional note, and a map thumbnail. Three layouts (map card, strip, text only), top or bottom, dark or light, adjustable size.
-- **Three map thumbnail designs:** Street (full-colour map, square, pin), Mono (grey map, square, target dot) and Night (dark map, round, pin). Pick one from the style cards, which preview each design with your location.
+- **Four map thumbnail designs:** Street (full-colour map, square, pin), Mono (grey map, square, target dot), Night (dark map, round, pin) and Satellite (aerial imagery, square, pin). Pick one from the style cards, which preview each design with your location.
 - **Date and time:** any date, time and time zone, in four date styles.
 - **Real geotag in the file:** JPEG downloads also carry the GPS position, date and time zone in their EXIF data, so gallery apps and maps place the photo correctly.
 - **Edits an existing geotag:** if the photo already has a location or date in its EXIF data, they load as the starting point.
 - **Output:** JPEG (quality control) or PNG, capped at 4096 px on the long side or at the original size.
+- **Landing page, About and copyright details:** the site opens on a short landing page (a live sample of the stamp, how it works, About, credits and licences). The tool itself is at `#app`, for example `https://<your-username>.github.io/geotag-stamp/#app`.
+- **Rating:** visitors rate the site from 1 to 5 stars. The rating is saved on their own device. They can add a note and send it to you as a prefilled GitHub issue, or copy it.
+- **Share:** native share sheet where the device has one, plus WhatsApp, Telegram, X, Facebook, Email and copy link.
+- **Loading animation:** a short pin-drop intro (once per browser tab session), staggered entrances, a progress bar while a photo opens, a place is searched or a file is saved, and tiles that fade in. All of it is switched off for visitors who prefer reduced motion.
 
 ## Publish it on GitHub Pages
 
@@ -44,7 +48,7 @@ The file Pages serves is `index.html` in the repository root. It is self-contain
 ## Privacy
 
 - The photo is read and drawn on in your browser. It is not sent anywhere.
-- Only the text you search for, or the coordinates of the pin, are sent to the address search service (OpenStreetMap Nominatim, with Photon as a backup). Map tiles are fetched from OpenStreetMap.
+- Only the text you search for, or the coordinates of the pin, are sent to the address search service (OpenStreetMap Nominatim, with Photon as a backup). Map tiles are fetched from OpenStreetMap, and satellite tiles from Esri.
 - The page ships a Content-Security-Policy that allows connections to those services and nothing else, so the page cannot send your photo elsewhere even by mistake.
 
 ## Using other map or search providers
@@ -56,6 +60,9 @@ const CONFIG = {
   nominatim: 'https://nominatim.openstreetmap.org',
   photon: 'https://photon.komoot.io',
   tiles: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+  satellite: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+  siteUrl: 'https://<your-username>.github.io/geotag-stamp/',   // used when the page is opened from a file or localhost
+  repo: 'https://github.com/<your-username>/geotag-stamp',       // where "Send on GitHub" opens an issue
   contactEmail: '',
 };
 ```
@@ -63,6 +70,8 @@ const CONFIG = {
 If you change a host, add it to the Content-Security-Policy `<meta>` in the `<head>` too (`connect-src` for search, `img-src` for tiles). The browser blocks anything not listed.
 
 **Fair use.** OpenStreetMap's public servers are free for light use. A busy public site should follow the [Nominatim usage policy](https://operations.osmfoundation.org/policies/nominatim/) and the [tile usage policy](https://operations.osmfoundation.org/policies/tiles/): set `contactEmail` so requests identify your site, and move to your own or a commercial provider if traffic grows. This page only searches when someone presses Find place and never searches as you type.
+
+**Satellite imagery** comes from Esri's public World Imagery tile service and carries Esri's attribution on the thumbnail. That is fine for light, non-commercial use; for a busy or commercial site, check [Esri's terms](https://www.esri.com/en-us/legal/terms/full-master-agreement) and use your own key or another imagery provider. Coverage and detail vary by place.
 
 ## Change it and rebuild
 
@@ -96,10 +105,13 @@ pyftsubset InstrumentSans-Regular.ttf --unicodes="U+0020-007E,U+00A0-00FF,U+2013
 - Saving as JPEG writes a fresh EXIF block with location and time only. Other camera details from the original photo are not carried over.
 - HEIC photos open only in browsers that can decode them (Safari, and most phones convert them to JPEG on upload).
 - "Use my location" needs a secure page, which GitHub Pages is.
+- Ratings are stored on each visitor's own device, so there is no public average. To collect ratings in one place you would need a small backend, for example a form service or a database.
+- Google's own map imagery and logo are not used: they need Google's paid Maps API and terms. Satellite thumbnails use Esri imagery instead.
 
 ## Credits and licences
 
 - Code: [MIT](LICENSE).
 - Font: Instrument Sans, SIL Open Font License 1.1 (`fonts/OFL.txt`).
 - Map data and tiles: © [OpenStreetMap contributors](https://www.openstreetmap.org/copyright), ODbL. The credit is shown on the map and on the stamp's map thumbnail.
+- Satellite imagery: © Esri, Maxar, Earthstar Geographics and the GIS User Community. The credit is shown on the satellite thumbnail and in the page footer.
 - Address search: [Nominatim](https://nominatim.org/) and [Photon](https://photon.komoot.io/) (both OpenStreetMap data).

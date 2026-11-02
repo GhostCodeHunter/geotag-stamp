@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Chumi Geo Tag: add location, address and time to a photo</title>
 <meta name="description" content="Upload a photo, set a place from an address, Google Maps link or map pin, pick a date and time, and download the photo with a geotag stamp.">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-{{SCRIPT_HASH}}'; style-src 'sha256-{{STYLE_HASH}}'; img-src 'self' data: blob: https://tile.openstreetmap.org; font-src data:; connect-src https://nominatim.openstreetmap.org https://photon.komoot.io; base-uri 'none'; form-action 'none'; object-src 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-{{SCRIPT_HASH}}'; style-src 'sha256-{{STYLE_HASH}}'; img-src 'self' data: blob: https://tile.openstreetmap.org https://server.arcgisonline.com; font-src data:; connect-src https://nominatim.openstreetmap.org https://photon.komoot.io; base-uri 'none'; form-action 'none'; object-src 'none'">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <meta name="theme-color" content="#E8EBE6">
 <meta property="og:type" content="website">
@@ -185,16 +185,341 @@ input::placeholder,textarea::placeholder{color:#6A746D}
   .btn{transition:none}
   .btn:active{transform:none}
 }
+
+/* ================= motion tokens ================= */
+:root{--ease:cubic-bezier(.22,1,.36,1);--ease-io:cubic-bezier(.7,0,.2,1);--base:.95s}
+html.no-intro,html.intro-done{--base:0s}
+html{scroll-behavior:smooth;scroll-padding-top:16px}
+@keyframes rise{from{opacity:0;transform:translateY(28px)}to{opacity:1;transform:none}}
+@keyframes riseS{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+@keyframes fade{from{opacity:0}to{opacity:1}}
+@keyframes fadeOut{from{opacity:1}to{opacity:0}}
+@keyframes wipe{from{clip-path:inset(0 0 0 100%)}to{clip-path:inset(0 0 0 0)}}
+@keyframes pop{from{opacity:0;transform:scale(.97)}to{opacity:1;transform:none}}
+@keyframes stampIn{from{opacity:0;transform:translateY(40px)}to{opacity:1;transform:none}}
+@keyframes bar{0%{transform:translateX(-100%)}100%{transform:translateX(265%)}}
+@keyframes dlgIn{from{opacity:0;transform:translateY(16px) scale(.98)}to{opacity:1;transform:none}}
+@keyframes dlgOut{from{opacity:1;transform:none}to{opacity:0;transform:translateY(8px) scale(.99)}}
+
+/* ================= loading intro (pure CSS, never blocks) ================= */
+#loader{position:fixed;inset:0;z-index:100;background:var(--ground);display:grid;place-items:center;animation:loaderOut .55s var(--ease-io) .95s forwards}
+html.no-intro #loader{display:none}
+#loader .mark{display:flex;flex-direction:column;align-items:center;gap:20px}
+#loader .pinwrap{position:relative;width:72px;height:92px;display:flex;justify-content:center;align-items:flex-end}
+#loader svg{width:48px;height:66px;display:block;transform-origin:50% 100%;animation:pinDrop .62s cubic-bezier(.3,.7,.3,1) .05s both}
+#loader .ping{position:absolute;left:50%;bottom:-6px;width:76px;height:22px;margin-left:-38px;border:2px solid var(--accent);border-radius:50%;opacity:0;animation:ping .9s var(--ease) .5s both}
+#loader .word{font-size:var(--t-xl);line-height:1.1;font-weight:700;letter-spacing:-.02em;opacity:0;animation:riseS .45s var(--ease) .55s both}
+@keyframes pinDrop{0%{transform:translateY(-140px) scaleY(1);opacity:0}45%{opacity:1}68%{transform:translateY(0) scaleY(.86)}84%{transform:translateY(-9px) scaleY(1.04)}100%{transform:translateY(0) scaleY(1);opacity:1}}
+@keyframes ping{0%{transform:scale(.25);opacity:.9}100%{transform:scale(1.7);opacity:0}}
+@keyframes loaderOut{to{transform:translateY(-100%);visibility:hidden}}
+
+/* top progress bar for real waits (decoding a photo, searching, saving) */
+#progress{position:fixed;left:0;right:0;top:0;height:3px;z-index:90;pointer-events:none;opacity:0;transition:opacity .2s ease .12s;overflow:hidden}
+html.busy #progress{opacity:1}
+#progress i{display:block;width:38%;height:100%;background:var(--accent);transform:translateX(-100%);animation:bar 1.05s cubic-bezier(.4,0,.2,1) infinite}
+
+/* entrance utilities: CSS-only, so content is never stuck hidden if script fails */
+.rise{animation:rise .8s var(--ease) calc(var(--base) + var(--d,0s)) both}
+.d1{--d:.06s}.d2{--d:.12s}.d3{--d:.2s}.d4{--d:.28s}.d5{--d:.36s}
+.view.enter{animation:fade .45s ease-out both}
+html.js .reveal{opacity:0;transform:translateY(26px);transition:opacity .7s var(--ease),transform .7s var(--ease);transition-delay:var(--rd,0s)}
+html.js .reveal.in{opacity:1;transform:none}
+.r1{--rd:.08s}.r2{--rd:.16s}.r3{--rd:.24s}.r4{--rd:.32s}
+
+/* app view: sections settle in one after another */
+#view-app.enter .controls > section{animation:riseS .55s var(--ease) both}
+#view-app.enter .controls > section:nth-child(1){animation-delay:calc(var(--base) + .05s)}
+#view-app.enter .controls > section:nth-child(2){animation-delay:calc(var(--base) + .11s)}
+#view-app.enter .controls > section:nth-child(3){animation-delay:calc(var(--base) + .17s)}
+#view-app.enter .controls > section:nth-child(4){animation-delay:calc(var(--base) + .23s)}
+#view-app.enter .controls > section:nth-child(5){animation-delay:calc(var(--base) + .29s)}
+#view-app.enter .controls > section:nth-child(6){animation-delay:calc(var(--base) + .35s)}
+#view-app.enter .stage{animation:fade .6s ease-out calc(var(--base) + .1s) both}
+
+/* in-app loading polish */
+.map .tiles img{opacity:0;transition:opacity .3s ease-out}
+.map .tiles img.in{opacity:1}
+.preview.pop{animation:pop .55s var(--ease) both}
+.results li{animation:riseS .35s var(--ease) calc(var(--i,0) * 40ms) both}
+
+/* ================= app header nav ================= */
+.top .brand{margin:0}
+.top .brand a{display:flex;align-items:center;gap:10px;color:inherit;text-decoration:none}
+.appnav{display:flex;align-items:center;gap:8px}
+.appnav a{display:inline-flex;align-items:center;min-height:44px;padding:0 10px;color:var(--ink);font-weight:700;text-decoration:none}
+.appnav a:hover{text-decoration:underline;text-underline-offset:4px}
+
+/* ================= landing ================= */
+.lh{display:flex;align-items:center;justify-content:space-between;gap:16px;min-height:72px;padding:0 clamp(16px,3vw,40px)}
+.lh .brand{margin:0;display:flex;align-items:center;gap:10px;font-size:var(--t-xl);line-height:1.1;font-weight:700;letter-spacing:-.02em;color:inherit;text-decoration:none}
+.lh .brand svg{width:20px;height:28px;flex:none}
+.lh nav{display:flex;align-items:center;gap:clamp(8px,2vw,28px)}
+.lh nav a:not(.btn){display:inline-flex;align-items:center;min-height:44px;padding:0 4px;color:var(--ink);text-decoration:none}
+.lh nav a:not(.btn):hover{text-decoration:underline;text-underline-offset:5px}
+.btn.lg{min-height:56px;padding:0 28px}
+a.btn{text-decoration:none}
+.textlink{display:inline-flex;align-items:center;min-height:44px;padding:0 4px;color:var(--ink);font-weight:700;text-decoration:underline;text-underline-offset:5px;text-decoration-thickness:2px}
+.textlink:hover{color:var(--accent)}
+
+.hero{display:grid;grid-template-columns:minmax(0,1.04fr) minmax(0,.96fr);min-height:calc(100vh - 72px);min-height:calc(100dvh - 72px);padding-left:clamp(16px,3vw,40px)}
+.hero-copy{display:flex;flex-direction:column;justify-content:center;align-items:flex-start;gap:28px;padding:40px clamp(16px,3.4vw,56px) 56px 0;min-width:0}
+.hero h1{margin:0;font-size:clamp(34px,4.7vw,72px);line-height:.98;letter-spacing:-.035em;font-weight:700}
+.hero h1 .w{display:inline-block;animation:rise .8s var(--ease) calc(var(--base) + var(--wd,0s)) both}
+.hero h1 .w:nth-child(1){--wd:.00s}.hero h1 .w:nth-child(2){--wd:.05s}.hero h1 .w:nth-child(3){--wd:.10s}.hero h1 .w:nth-child(4){--wd:.15s}
+.hero h1 .w:nth-child(5){--wd:.20s}.hero h1 .w:nth-child(6){--wd:.25s}.hero h1 .w:nth-child(7){--wd:.30s}.hero h1 .w:nth-child(8){--wd:.35s}
+.lead{margin:0;font-size:var(--t-xl);line-height:1.3;letter-spacing:-.01em;max-width:24em}
+.cta{display:flex;align-items:center;flex-wrap:wrap;gap:12px 20px}
+.fine{margin:0;font-size:var(--t-s);color:var(--ink-2)}
+.hero-stage{background:var(--stage);color:var(--stage-ink);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;padding:clamp(20px,3vw,48px);min-width:0;animation:wipe 1s var(--ease-io) calc(var(--base) + .05s) both}
+.photo{position:relative;width:min(100%,calc((100vh - 72px - 190px) * .8));width:min(100%,calc((100dvh - 72px - 190px) * .8));min-width:240px;aspect-ratio:4/5;background:#26302E}
+.photo canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+.photo .stampcv{animation:stampIn .9s var(--ease) calc(var(--base) + .6s) both}
+.seg.on-dark label{background:var(--stage-2);border-color:var(--stage-3);color:var(--stage-ink)}
+.seg.on-dark input:checked + label{background:var(--stage-ink);border-color:var(--stage-ink);color:var(--stage)}
+.seg.on-dark input:focus-visible + label{outline-color:var(--stage-ink)}
+.hero-stage fieldset{width:min(100%,440px)}
+.hero-stage .seg{width:100%}
+.hero-stage .seg label{min-height:44px}
+.cap{margin:0;font-size:var(--t-s);line-height:1.4;color:var(--stage-ink-2);text-align:center;max-width:34em}
+
+.band{padding:clamp(72px,10vw,150px) clamp(16px,3vw,40px)}
+.band.alt{background:var(--panel)}
+.band h2{margin:0 0 clamp(32px,5vw,64px);font-size:clamp(30px,3.8vw,52px);line-height:1.02;letter-spacing:-.03em;font-weight:700;max-width:14em}
+.band h3{margin:0 0 8px;font-size:var(--t-xl);line-height:1.15;letter-spacing:-.015em;font-weight:700}
+.band p{margin:0;max-width:34em}
+.split{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:clamp(32px,6vw,96px);align-items:start}
+.split > .col > h2{margin-bottom:clamp(24px,3vw,40px)}
+.steps{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:clamp(24px,4vw,64px);align-items:start}
+.steps li:nth-child(2){margin-top:clamp(0px,4.5vw,64px)}
+.steps li:nth-child(3){margin-top:clamp(0px,9vw,128px)}
+.facts{margin:0;display:flex;flex-direction:column;gap:24px}
+.facts dt{font-weight:700;font-size:var(--t-m)}
+.facts dd{margin:4px 0 0;max-width:32em}
+.panel-dark{background:var(--stage);color:var(--stage-ink);padding:clamp(20px,3vw,40px);display:flex;flex-direction:column;gap:20px}
+.thumbs{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:clamp(8px,1.6vw,20px)}
+.thumbs figure{margin:0;display:flex;flex-direction:column;align-items:center;gap:10px}
+.thumbs canvas{display:block;width:100%;max-width:200px;aspect-ratio:1}
+.thumbs figcaption{font-weight:700}
+.prose{display:flex;flex-direction:column;gap:28px}
+.prose a{color:var(--ink);font-weight:700;text-underline-offset:3px}
+.prose a:hover{color:var(--accent)}
+
+/* rating + share */
+.rate,.share{display:flex;flex-direction:column;gap:16px;max-width:34em}
+.starrow{display:flex;gap:4px}
+.starrow input{position:absolute;opacity:0;width:1px;height:1px}
+.starrow label{display:grid;place-items:center;width:52px;height:52px;cursor:pointer;font-weight:400}
+.starrow svg{width:40px;height:40px;fill:none;stroke:#6B766F;stroke-width:1.6;stroke-linejoin:round;transition:fill .15s,stroke .15s,transform .15s var(--ease)}
+.starrow label:hover svg{transform:scale(1.12)}
+.starrow input:focus-visible + label{outline:2px solid var(--ink);outline-offset:1px}
+.starrow[data-show="1"] label:nth-of-type(-n+1) svg,.starrow[data-show="2"] label:nth-of-type(-n+2) svg,.starrow[data-show="3"] label:nth-of-type(-n+3) svg,.starrow[data-show="4"] label:nth-of-type(-n+4) svg,.starrow[data-show="5"] label:nth-of-type(-n+5) svg{fill:var(--accent);stroke:var(--accent)}
+.rate-msg,.share-msg{margin:0;min-height:1.45em;font-weight:700}
+.rate-more{display:flex;flex-direction:column;gap:12px;animation:riseS .4s var(--ease) both}
+.row.wrap{flex-wrap:wrap}
+.sharelist{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.sharelist .btn{width:100%}
+.linkfield{display:flex;gap:8px}
+.linkfield input{flex:1;min-width:0}
+
+/* footer */
+.foot{background:var(--ink);color:var(--stage-ink);padding:clamp(56px,8vw,110px) clamp(16px,3vw,40px) 40px;display:flex;flex-direction:column;gap:clamp(32px,5vw,64px)}
+.bigname{margin:0;font-size:clamp(40px,12.4vw,210px);line-height:.9;letter-spacing:-.045em;font-weight:700;white-space:nowrap}
+.foot-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:clamp(24px,4vw,64px);font-size:var(--t-s);line-height:1.6;color:#B9C2BB}
+.foot-grid p{margin:0 0 10px;max-width:34em}
+.foot a{color:var(--stage-ink);text-underline-offset:3px}
+.foot a:hover{color:#fff}
+.foot nav{display:flex;flex-direction:column;gap:2px;align-items:flex-start}
+.foot nav a{display:inline-flex;align-items:center;min-height:36px;font-size:var(--t-m)}
+.foot :focus-visible{outline-color:var(--stage-ink)}
+
+/* dialogs (Rate, Share) */
+dialog{border:0;padding:0;background:var(--panel);color:var(--ink);width:min(520px,calc(100vw - 32px));max-height:calc(100vh - 32px);max-height:calc(100dvh - 32px);overflow:auto}
+dialog::backdrop{background:rgba(18,23,20,.64)}
+dialog[open]{animation:dlgIn .32s var(--ease) both}
+dialog[open]::backdrop{animation:fade .32s ease-out both}
+dialog.closing{animation:dlgOut .18s ease-in both}
+dialog.closing::backdrop{animation:fadeOut .18s ease-in both}
+.dlg{padding:24px;display:flex;flex-direction:column;gap:18px}
+.dlg h2{margin:0;font-size:var(--t-xl);line-height:1.15;letter-spacing:-.02em;font-weight:700}
+.dlg .btn.close{align-self:flex-start}
+
+@media (max-width:959px){
+  .hero{grid-template-columns:1fr;min-height:0;padding-left:0}
+  .hero-copy{padding:32px 16px 40px}
+  .hero h1{font-size:clamp(36px,8vw,64px)}
+  .hero-stage{padding:28px 16px 32px}
+  .photo{width:min(100%,520px)}
+  .split{grid-template-columns:1fr}
+  .steps{grid-template-columns:1fr;gap:32px}
+  .steps li:nth-child(n){margin-top:0}
+  .foot-grid{grid-template-columns:1fr}
+  .lh nav a:not(.btn){display:none}
+}
+@media (max-width:420px){
+  .top{gap:8px}
+  .top .brand{font-size:20px}
+  .top .brand svg{width:16px;height:22px}
+  .appnav{gap:0}
+  .appnav a{padding:0 8px}
+  .appnav .btn{padding:0 10px}
+  .lh .brand{font-size:20px}
+  .lh .btn{padding:0 14px}
+  .starrow label{width:48px;height:48px}
+}
+@media (prefers-reduced-motion:reduce){
+  html{scroll-behavior:auto}
+  #loader{display:none}
+  *,*::before,*::after{animation-duration:.001ms!important;animation-delay:0s!important;animation-iteration-count:1!important;transition-duration:.001ms!important;transition-delay:0s!important}
+  html.js .reveal{opacity:1;transform:none}
+  #progress i{animation:none;width:100%;transform:none}
+}
+
+.cards{grid-template-columns:repeat(4,minmax(0,1fr))}
+@media (max-width:560px){.thumbs{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:480px){.cards{grid-template-columns:repeat(2,minmax(0,1fr))}}
 </style>
 </head>
 <body>
+<div id="loader" aria-hidden="true">
+  <div class="mark">
+    <div class="pinwrap"><span class="ping"></span><svg viewBox="0 0 34 46"><path d="M17 45C17 45 2 28.500 2 17a15 15 0 0 1 30 0c0 11.500-15 28-15 28z" fill="#C8361F"/><circle cx="17" cy="17" r="5.500" fill="#fff"/></svg></div>
+    <div class="word">Chumi Geo Tag</div>
+  </div>
+</div>
+<div id="progress" aria-hidden="true"><i></i></div>
+
+<div id="view-home" class="view">
+  <header class="lh">
+    <a class="brand" href="#" aria-label="Chumi Geo Tag, home"><svg viewBox="0 0 34 46" aria-hidden="true"><path d="M17 45C17 45 2 28.500 2 17a15 15 0 0 1 30 0c0 11.500-15 28-15 28z" fill="#C8361F"/><circle cx="17" cy="17" r="5.500" fill="#fff"/></svg>Chumi Geo Tag</a>
+    <nav aria-label="Main">
+      <a href="#how">How it works</a>
+      <a href="#rate">Rate and share</a>
+      <a href="#about">About</a>
+      <a class="btn primary" href="#app">Open the tool</a>
+    </nav>
+  </header>
+
+  <main>
+    <section class="hero" aria-labelledby="h-hero">
+      <div class="hero-copy">
+        <h1 id="h-hero"><span class="w">Put</span> <span class="w">the</span> <span class="w">place</span> <span class="w">and</span> <span class="w">time</span> <span class="w">on</span> <span class="w">any</span> <span class="w">photo.</span></h1>
+        <p class="lead rise d3">Add the address, a map, coordinates and the time to a photo in under a minute.</p>
+        <div class="cta rise d4">
+          <a class="btn primary lg" href="#app">Open Chumi Geo Tag</a>
+          <a class="textlink" href="#how">See how it works</a>
+        </div>
+        <p class="fine rise d5">Free. No account. Your photo never leaves your device.</p>
+      </div>
+      <div class="hero-stage">
+        <div class="photo">
+          <canvas id="heroPhoto" aria-hidden="true"></canvas>
+          <canvas id="heroStamp" class="stampcv" role="img" aria-label="A sample photo with a geotag stamp: Dubai, United Arab Emirates, its coordinates, the date and time, and a map thumbnail."></canvas>
+        </div>
+        <fieldset>
+          <legend class="sr">Map thumbnail style on the sample</legend>
+          <div class="seg on-dark" role="radiogroup">
+            <input type="radio" name="heroDesign" id="hd-street" value="street" checked><label for="hd-street">Street</label>
+            <input type="radio" name="heroDesign" id="hd-mono" value="mono"><label for="hd-mono">Mono</label>
+            <input type="radio" name="heroDesign" id="hd-night" value="night"><label for="hd-night">Night</label>
+            <input type="radio" name="heroDesign" id="hd-satellite" value="satellite"><label for="hd-satellite">Satellite</label>
+          </div>
+        </fieldset>
+        <p class="cap">Sample photo, drawn for this page. The stamp is made by the same code as the tool.</p>
+      </div>
+    </section>
+
+    <section id="how" class="band" aria-labelledby="h-how">
+      <h2 id="h-how" class="reveal">Three steps, no sign-up.</h2>
+      <ol class="steps" role="list">
+        <li class="reveal r1"><h3>Choose a photo</h3><p>A JPEG, PNG or WebP from your phone or computer. It opens in your browser and goes nowhere else.</p></li>
+        <li class="reveal r2"><h3>Say where and when</h3><p>Type an address, paste a Google Maps link, drop a pin or use your location. Set any date and time.</p></li>
+        <li class="reveal r3"><h3>Download it stamped</h3><p>Pick a map style, then save a full-resolution photo with the stamp drawn on and the location written into the file.</p></li>
+      </ol>
+    </section>
+
+    <section id="why" class="band alt" aria-labelledby="h-why">
+      <div class="split">
+        <div class="col">
+          <h2 id="h-why" class="reveal">Made for real photos.</h2>
+          <dl class="facts">
+            <div class="reveal r1"><dt>Reads Google Maps links.</dt><dd>Paste a place link, a link with coordinates, or plain latitude and longitude. The pin lands where it should.</dd></div>
+            <div class="reveal r2"><dt>Writes a real geotag.</dt><dd>JPEG downloads carry the GPS position, date and time zone in the file, so gallery apps and maps place the photo correctly.</dd></div>
+            <div class="reveal r3"><dt>Edits an existing geotag.</dt><dd>If a photo already has a location or date, they load as your starting point.</dd></div>
+            <div class="reveal r4"><dt>Private by design.</dt><dd>Your photo is never uploaded. The page can only talk to the map and address services, and nothing else.</dd></div>
+          </dl>
+        </div>
+        <div class="panel-dark reveal r2">
+          <div class="thumbs">
+            <figure><canvas data-feature-thumb="street" width="360" height="360" aria-hidden="true"></canvas><figcaption>Street</figcaption></figure>
+            <figure><canvas data-feature-thumb="mono" width="360" height="360" aria-hidden="true"></canvas><figcaption>Mono</figcaption></figure>
+            <figure><canvas data-feature-thumb="night" width="360" height="360" aria-hidden="true"></canvas><figcaption>Night</figcaption></figure>
+            <figure><canvas data-feature-thumb="satellite" width="360" height="360" aria-hidden="true"></canvas><figcaption>Satellite</figcaption></figure>
+          </div>
+          <p class="cap">Four map thumbnail styles, picked in the tool. Sample maps shown here.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="rate" class="band" aria-labelledby="h-rate">
+      <div class="split">
+        <div class="col reveal">
+          <h2 id="h-rate">How is it working for you?</h2>
+          <div data-mount="rate"></div>
+        </div>
+        <div class="col reveal r2" id="share">
+          <h2 id="h-share">Send it to a friend.</h2>
+          <div data-mount="share"></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="about" class="band alt" aria-labelledby="h-about">
+      <div class="split">
+        <h2 id="h-about" class="reveal">About Chumi Geo Tag</h2>
+        <div class="prose">
+          <div class="reveal"><h3>What it is</h3><p>Chumi Geo Tag is a free tool that puts a place, an address and a time on a photo. Choose a picture, say where and when, and download it with a clean stamp and a real geotag inside the file.</p></div>
+          <div class="reveal r1"><h3>Your photo stays with you</h3><p>The photo is read and drawn on in your browser. It is never uploaded. Only the address you search for is sent to OpenStreetMap's search service, and map pictures are fetched from OpenStreetMap and Esri.</p></div>
+          <div class="reveal r2"><h3>Open source</h3><p>The code is free to read, copy and improve under the MIT licence. <a href="https://github.com/rkarthikraj198-stack/geotag-stamp" target="_blank" rel="noopener noreferrer">View it on GitHub</a>.</p></div>
+          <div class="reveal r3"><h3>Please use it honestly</h3><p>Chumi Geo Tag writes the place and time you choose onto a photo. It does not prove where or when a photo was taken, and you are responsible for how you use the result.</p></div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="foot" id="copyright">
+    <p class="bigname" aria-hidden="true">Chumi Geo Tag</p>
+    <div class="foot-grid">
+      <div>
+        <p>&copy; 2026 Chumi Geo Tag. The code is released under the <a href="https://github.com/rkarthikraj198-stack/geotag-stamp/blob/main/LICENSE" target="_blank" rel="noopener noreferrer">MIT licence</a>.</p>
+        <p>Photos you stamp belong to you. Chumi Geo Tag never receives them.</p>
+      </div>
+      <div>
+        <p>Map data &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap contributors</a>, available under the Open Database Licence. Address search by Nominatim and Photon.</p>
+        <p>Satellite imagery &copy; Esri, Maxar, Earthstar Geographics and the GIS User Community. Typeface: Instrument Sans, SIL Open Font License 1.1.</p>
+      </div>
+      <nav aria-label="Footer">
+        <a href="#app">Open the tool</a>
+        <a href="#how">How it works</a>
+        <a href="#about">About</a>
+        <a href="#rate">Rate and share</a>
+        <a href="https://github.com/rkarthikraj198-stack/geotag-stamp" target="_blank" rel="noopener noreferrer">GitHub</a>
+      </nav>
+    </div>
+  </footer>
+</div>
+
+<div id="view-app" class="view" hidden>
 <header class="top">
-  <h1 class="brand">
-    <svg viewBox="0 0 34 46" aria-hidden="true"><path d="M17 45C17 45 2 28.5 2 17a15 15 0 0 1 30 0c0 11.500-15 28-15 28z" fill="#C8361F"/><circle cx="17" cy="17" r="5.500" fill="#fff"/></svg>
-    Chumi Geo Tag
-  </h1>
-  <p class="tagline">Add a place, an address and a time to a photo.</p>
+  <h1 class="brand"><a href="#" aria-label="Chumi Geo Tag, home">
+    <svg viewBox="0 0 34 46" aria-hidden="true"><path d="M17 45C17 45 2 28.500 2 17a15 15 0 0 1 30 0c0 11.500-15 28-15 28z" fill="#C8361F"/><circle cx="17" cy="17" r="5.500" fill="#fff"/></svg>
+    Chumi Geo Tag</a></h1>
+  <nav class="appnav" aria-label="Site">
+    <a href="#about">About</a>
+    <button type="button" class="btn quiet small" data-open="rate">Rate</button>
+    <button type="button" class="btn quiet small" data-open="share">Share</button>
+  </nav>
 </header>
+
 
 <main class="app">
   <div class="controls" id="controls">
@@ -306,6 +631,7 @@ input::placeholder,textarea::placeholder{color:#6A746D}
           <input type="radio" name="mapDesign" id="md-street" value="street" checked><label for="md-street"><canvas width="168" height="168" data-design="street" aria-hidden="true"></canvas>Street</label>
           <input type="radio" name="mapDesign" id="md-mono" value="mono"><label for="md-mono"><canvas width="168" height="168" data-design="mono" aria-hidden="true"></canvas>Mono</label>
           <input type="radio" name="mapDesign" id="md-night" value="night"><label for="md-night"><canvas width="168" height="168" data-design="night" aria-hidden="true"></canvas>Night</label>
+          <input type="radio" name="mapDesign" id="md-satellite" value="satellite"><label for="md-satellite"><canvas width="168" height="168" data-design="satellite" aria-hidden="true"></canvas>Satellite</label>
         </div>
       </fieldset>
       <div class="group">
@@ -361,6 +687,14 @@ input::placeholder,textarea::placeholder{color:#6A746D}
     </div>
   </section>
 </main>
+</div>
+
+<dialog id="dlg-rate" aria-labelledby="dr-h">
+  <div class="dlg"><h2 id="dr-h">Rate Chumi Geo Tag</h2><div data-mount="rate"></div><button type="button" class="btn close" data-close>Close</button></div>
+</dialog>
+<dialog id="dlg-share" aria-labelledby="ds-h">
+  <div class="dlg"><h2 id="ds-h">Share with friends</h2><div data-mount="share"></div><button type="button" class="btn close" data-close>Close</button></div>
+</dialog>
 <noscript><p class="nojs">Chumi Geo Tag needs JavaScript to read and draw on your photo.</p></noscript>
 
 <script>
@@ -382,10 +716,18 @@ const CONFIG = {
   nominatim: 'https://nominatim.openstreetmap.org',
   photon: 'https://photon.komoot.io',
   tiles: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+  satellite: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+  siteUrl: 'https://rkarthikraj198-stack.github.io/geotag-stamp/',
+  repo: 'https://github.com/rkarthikraj198-stack/geotag-stamp',
   contactEmail: '',
 };
 const emailParam = () => CONFIG.contactEmail ? `&email=${encodeURIComponent(CONFIG.contactEmail)}` : '';
 
+const REDUCED = matchMedia('(prefers-reduced-motion: reduce)').matches;
+document.documentElement.classList.add('js');
+try { if (sessionStorage.getItem('chumi:intro') === '1') document.documentElement.classList.add('no-intro'); else sessionStorage.setItem('chumi:intro', '1'); } catch (e) {}
+let busyN = 0;
+function busy(on) { busyN = Math.max(0, busyN + (on ? 1 : -1)); document.documentElement.classList.toggle('busy', busyN > 0); }
 function debounce(fn, ms) { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); }; }
 function setStatus(el, text, bad) { el.textContent = text || ''; el.classList.toggle('bad', !!bad); }
 
@@ -404,7 +746,7 @@ const S = {
 const PERSIST = ['layout','pos','theme','scale','mapDesign','showMap','showCoords','showDate','coordFmt','dfmt','fmt','quality','maxEdge','writeExif'];
 function loadSettings() {
   try { const o = JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}'); for (const k of PERSIST) if (k in o && typeof o[k] === typeof S[k]) S[k] = o[k]; } catch (e) {}
-  if (!['street', 'mono', 'night'].includes(S.mapDesign)) S.mapDesign = 'street';
+  if (!['street', 'mono', 'night', 'satellite'].includes(S.mapDesign)) S.mapDesign = 'street';
 }
 const saveSettings = debounce(() => {
   try { const o = {}; for (const k of PERSIST) o[k] = S[k]; localStorage.setItem(SETTINGS_KEY, JSON.stringify(o)); } catch (e) {}
@@ -588,7 +930,8 @@ const lngToX = (lng, z) => (lng + 180) / 360 * TILE * 2 ** z;
 const latToY = (lat, z) => { const s = clamp(Math.sin(lat * Math.PI / 180), -0.9999, 0.9999); return (0.5 - Math.log((1 + s) / (1 - s)) / (4 * Math.PI)) * TILE * 2 ** z; };
 const xToLng = (x, z) => x / (TILE * 2 ** z) * 360 - 180;
 const yToLat = (y, z) => { const n = Math.PI - 2 * Math.PI * y / (TILE * 2 ** z); return 180 / Math.PI * Math.atan(0.5 * (Math.exp(n) - Math.exp(-n))); };
-const tileUrl = (z, x, y) => CONFIG.tiles.replace('{z}', z).replace('{x}', x).replace('{y}', y);
+const tileFrom = (tpl, z, x, y) => tpl.replace('{z}', z).replace('{x}', x).replace('{y}', y);
+const tileUrl = (z, x, y) => tileFrom(CONFIG.tiles, z, x, y);
 
 /* ================= interactive map ================= */
 class SlippyMap {
@@ -630,7 +973,10 @@ class SlippyMap {
       this.setCenterPx(lngToX(at.lng, nz) - (anchor.x - this.w / 2), latToY(at.lat, nz) - (anchor.y - this.h / 2));
     } else { this.zoom = nz; this.render(); }
   }
-  setPin(lat, lng) { this.pin = { lat, lng }; this.render(); }
+  setPin(lat, lng, drop) {
+    this.pin = { lat, lng }; this.render();
+    if (drop && !REDUCED && this.marker.animate) this.marker.firstElementChild.animate([{ transform: 'translateY(-30px)', opacity: 0 }, { transform: 'translateY(0)', opacity: 1 }], { duration: 360, easing: 'cubic-bezier(.3,1.35,.5,1)' });
+  }
   render() {
     const w = this.w, h = this.h, z = this.zoom; if (!w || !h) return;
     const c = this.center(), tlx = c.x - w / 2, tly = c.y - h / 2;
@@ -642,7 +988,7 @@ class SlippyMap {
         let img = this.tiles.get(key);
         if (!img) {
           img = new Image(); img.alt = ''; img.crossOrigin = 'anonymous'; img.decoding = 'async'; img.draggable = false;
-          img.addEventListener('load', () => { this.ok++; this.msg.hidden = true; });
+          img.addEventListener('load', () => { this.ok++; this.msg.hidden = true; img.classList.add('in'); });
           img.addEventListener('error', () => { this.bad++; if (this.ok === 0 && this.bad >= 3) this.msg.hidden = false; });
           img.src = tileUrl(z, ((tx % n) + n) % n, ty);
           this.layer.appendChild(img); this.tiles.set(key, img);
@@ -693,7 +1039,7 @@ class SlippyMap {
       const g = this.gesture;
       if (g && !g.pinch && this.pointers.size === 0) {
         if (g.marker) { if (g.moved && this.pin) this.onPick(this.pin.lat, this.pin.lng); }
-        else if (!g.moved) { const p = local(e), ll = this.pointToLatLng(p.x, p.y); this.setPin(ll.lat, ll.lng); this.onPick(ll.lat, ll.lng); }
+        else if (!g.moved) { const p = local(e), ll = this.pointToLatLng(p.x, p.y); this.setPin(ll.lat, ll.lng, true); this.onPick(ll.lat, ll.lng); }
       }
       if (this.pointers.size === 0) this.gesture = null;
     };
@@ -712,7 +1058,7 @@ class SlippyMap {
       if (move) { e.preventDefault(); this.setCenterPx(c.x + move[0], c.y + move[1]); }
       else if (e.key === '+' || e.key === '=') { e.preventDefault(); this.zoomBy(1); }
       else if (e.key === '-' || e.key === '_') { e.preventDefault(); this.zoomBy(-1); }
-      else if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); this.setPin(this.lat, this.lng); this.onPick(this.lat, this.lng); }
+      else if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); this.setPin(this.lat, this.lng, true); this.onPick(this.lat, this.lng); }
     });
   }
 }
@@ -831,9 +1177,9 @@ function insertExif(jpegBuf, seg) {
 
 /* ================= stamp drawing ================= */
 const tileCache = new Map();
-function loadTile(z, x, y) {
+function loadTile(z, x, y, tpl = CONFIG.tiles) {
   const n = 2 ** z; if (y < 0 || y >= n) return Promise.resolve(null);
-  const url = tileUrl(z, ((x % n) + n) % n, y);
+  const url = tileFrom(tpl, z, ((x % n) + n) % n, y);
   if (!tileCache.has(url)) {
     tileCache.set(url, new Promise(res => {
       const im = new Image(); im.crossOrigin = 'anonymous';
@@ -866,6 +1212,18 @@ function recolor(base, mode) {
   g.putImageData(img, 0, 0); return c;
 }
 const makeVariants = base => ({ street: base, mono: recolor(base, 'mono'), night: recolor(base, 'night') });
+function rng(seed) { let t = seed >>> 0; return () => { t = (t + 0x6D2B79F5) >>> 0; let r = Math.imul(t ^ (t >>> 15), 1 | t); r = (r + Math.imul(r ^ (r >>> 7), 61 | r)) ^ r; return ((r ^ (r >>> 14)) >>> 0) / 4294967296; }; }
+function aerialPlaceholder() {   // a drawn sample aerial view for the style cards; real imagery replaces it once a location is set
+  const c = document.createElement('canvas'); c.width = c.height = 512; const g = c.getContext('2d'), R = rng(5);
+  g.fillStyle = '#46513F'; g.fillRect(0, 0, 512, 512);
+  for (let i = 0; i < 46; i++) { g.fillStyle = R() < 0.5 ? '#3A4835' : '#586548'; g.beginPath(); g.arc(R() * 512, R() * 512, 8 + R() * 26, 0, Math.PI * 2); g.fill(); }
+  const roofs = ['#B9B3A6', '#9A9A92', '#C9C2B2', '#8E8A80', '#D2CCBE', '#A8A298'];
+  for (let i = 0; i < 70; i++) { const w = 14 + R() * 36, h = 12 + R() * 30, x = R() * 500, y = R() * 500; g.fillStyle = roofs[Math.floor(R() * roofs.length)]; g.fillRect(x, y, w, h); g.fillStyle = 'rgba(0,0,0,0.22)'; g.fillRect(x + w, y + 3, 4, h); }
+  g.lineCap = 'round';
+  const road = (x1, y1, x2, y2, w) => { g.strokeStyle = '#6C6E6A'; g.lineWidth = w; g.beginPath(); g.moveTo(x1, y1); g.lineTo(x2, y2); g.stroke(); g.strokeStyle = 'rgba(255,255,255,0.35)'; g.lineWidth = 2; g.setLineDash([14, 14]); g.stroke(); g.setLineDash([]); };
+  road(-10, 120, 530, 170, 30); road(150, -10, 190, 530, 26); road(-10, 440, 530, 330, 22);
+  return c;
+}
 let placeholderVariants = null;
 function getPlaceholder() {   // a drawn sample map, used only for the style cards before a location is set
   if (placeholderVariants) return placeholderVariants;
@@ -876,7 +1234,7 @@ function getPlaceholder() {   // a drawn sample map, used only for the style car
   g.fillStyle = '#E0DBD2'; for (const [x, y, w, h] of [[300, 40, 90, 70], [410, 60, 70, 110], [60, 60, 120, 90], [210, 190, 70, 60], [330, 200, 120, 70]]) g.fillRect(x, y, w, h);
   const road = (x1, y1, x2, y2, w, col) => { g.lineCap = 'round'; g.strokeStyle = '#C9C5BC'; g.lineWidth = w + 5; g.beginPath(); g.moveTo(x1, y1); g.lineTo(x2, y2); g.stroke(); g.strokeStyle = col; g.lineWidth = w; g.stroke(); };
   road(0, 150, 512, 170, 16, '#fff'); road(0, 290, 512, 270, 16, '#fff'); road(170, 0, 190, 512, 16, '#fff'); road(420, 0, 400, 512, 16, '#fff'); road(0, 430, 512, 190, 22, '#F7C86A');
-  return (placeholderVariants = makeVariants(c));
+  return (placeholderVariants = { ...makeVariants(c), satellite: aerialPlaceholder() });
 }
 function drawMarkerDot(ctx, cx, cy, s) {
   ctx.beginPath(); ctx.arc(cx, cy, 4.6 * s, 0, Math.PI * 2); ctx.fillStyle = 'rgba(200,54,31,0.20)'; ctx.fill();
@@ -889,15 +1247,16 @@ function drawMapThumb(ctx, x, y, size, s, design, base, withCredit) {
   if (round) ctx.arc(cx, cy, size / 2, 0, Math.PI * 2); else ctx.rect(x, y, size, size);
   ctx.clip();
   if (base) ctx.drawImage(base, 0, 0, base.width, base.height, x, y, size, size);
-  else { ctx.fillStyle = design === 'night' ? '#1E2327' : design === 'mono' ? '#E6E6E4' : '#DDE1DA'; ctx.fillRect(x, y, size, size); }
+  else { ctx.fillStyle = design === 'night' ? '#1E2327' : design === 'mono' ? '#E6E6E4' : design === 'satellite' ? '#3C4638' : '#DDE1DA'; ctx.fillRect(x, y, size, size); }
   if (design === 'mono') drawMarkerDot(ctx, cx, cy, s); else drawPin(ctx, cx, cy, s);
   if (base && withCredit) {
+    const sat = design === 'satellite';
     ctx.font = `400 ${1.35 * s}px ${FONT}`; ctx.textBaseline = 'alphabetic';
-    const at = '© OpenStreetMap', aw = ctx.measureText(at).width, lift = round ? 2.4 * s : 0;
-    const ax = round ? cx - (aw + 1.2 * s) / 2 : x + size - aw - 1.2 * s;
-    ctx.fillStyle = design === 'night' ? 'rgba(20,24,27,0.82)' : 'rgba(255,255,255,0.85)';
+    const at = sat ? '© Esri, Maxar' : '© OpenStreetMap', aw = ctx.measureText(at).width, lift = round ? 2.4 * s : 0;
+    const ax = round ? cx - (aw + 1.2 * s) / 2 : sat ? x : x + size - aw - 1.2 * s;
+    ctx.fillStyle = sat ? 'rgba(0,0,0,0.55)' : design === 'night' ? 'rgba(20,24,27,0.82)' : 'rgba(255,255,255,0.85)';
     ctx.fillRect(ax, y + size - 2.3 * s - lift, aw + 1.2 * s, 2.3 * s);
-    ctx.fillStyle = design === 'night' ? '#C9D1CC' : '#333';
+    ctx.fillStyle = sat ? '#fff' : design === 'night' ? '#C9D1CC' : '#333';
     ctx.fillText(at, ax + 0.6 * s, y + size - 0.7 * s - lift);
   }
   ctx.restore();
@@ -911,23 +1270,27 @@ function renderMapPicker() {
     drawMapThumb(g, 0, 0, n, n / 21, cv.dataset.design, vars && vars[cv.dataset.design], false);
   });
 }
+async function composeBase(tpl, z, win, lat, lng) {
+  const cx = lngToX(lng, z), cy = latToY(lat, z), x0 = cx - win / 2, y0 = cy - win / 2, jobs = [];
+  for (let ty = Math.floor(y0 / TILE); ty <= Math.floor((y0 + win - 1) / TILE); ty++)
+    for (let tx = Math.floor(x0 / TILE); tx <= Math.floor((x0 + win - 1) / TILE); tx++)
+      jobs.push(loadTile(z, tx, ty, tpl).then(im => ({ im, tx, ty })));
+  const res = await Promise.all(jobs);
+  const c = document.createElement('canvas'); c.width = c.height = win;
+  const g = c.getContext('2d'); g.fillStyle = '#E3E6DF'; g.fillRect(0, 0, win, win);
+  let any = false;
+  for (const { im, tx, ty } of res) if (im) { g.drawImage(im, Math.round(tx * TILE - x0), Math.round(ty * TILE - y0)); any = true; }
+  return any ? c : null;
+}
 async function prepareThumb() {
   if (S.lat == null) { thumbKey = ''; thumbVariants = null; renderMapPicker(); return; }
   const key = S.lat.toFixed(6) + ',' + S.lng.toFixed(6);
   if (key === thumbKey) return;
   thumbKey = key; thumbVariants = null; renderMapPicker();
-  const z = 18, win = 512, cx = lngToX(S.lng, z), cy = latToY(S.lat, z), x0 = cx - win / 2, y0 = cy - win / 2;
-  const jobs = [];
-  for (let ty = Math.floor(y0 / TILE); ty <= Math.floor((y0 + win - 1) / TILE); ty++)
-    for (let tx = Math.floor(x0 / TILE); tx <= Math.floor((x0 + win - 1) / TILE); tx++)
-      jobs.push(loadTile(z, tx, ty).then(im => ({ im, tx, ty })));
-  const res = await Promise.all(jobs);
+  const lat = S.lat, lng = S.lng;
+  const [street, sat] = await Promise.all([composeBase(CONFIG.tiles, 18, 512, lat, lng), composeBase(CONFIG.satellite, 17, 512, lat, lng)]);
   if (thumbKey !== key) return;
-  const c = document.createElement('canvas'); c.width = c.height = win;
-  const g = c.getContext('2d'); g.fillStyle = '#E3E6DF'; g.fillRect(0, 0, win, win);
-  let any = false;
-  for (const { im, tx, ty } of res) if (im) { g.drawImage(im, Math.round(tx * TILE - x0), Math.round(ty * TILE - y0)); any = true; }
-  thumbVariants = any ? makeVariants(c) : null;
+  thumbVariants = street || sat ? { ...(street ? makeVariants(street) : {}), ...(sat ? { satellite: sat } : {}) } : null;
   renderMapPicker(); schedule();
 }
 
@@ -964,13 +1327,12 @@ function stampData() {
     hasLoc,
   };
 }
-function drawStamp(ctx, W, H) {
-  const d = stampData();
-  const s = Math.min(W, H) / 100 * S.scale, light = S.theme === 'light', layout = S.layout;
+function drawStamp(ctx, W, H, st = S, d = stampData(), variants = thumbVariants) {
+  const s = Math.min(W, H) / 100 * st.scale, light = st.theme === 'light', layout = st.layout;
   const ink = light ? '#121714' : '#FFFFFF', ink2 = light ? '#37413B' : 'rgba(255,255,255,0.88)';
   const panel = light ? 'rgba(246,247,243,0.92)' : 'rgba(14,18,16,0.76)';
   const margin = layout === 'strip' ? 0 : 2.4 * s, pad = 2.4 * s;
-  const useThumb = layout !== 'text' && S.showMap && d.hasLoc;
+  const useThumb = layout !== 'text' && st.showMap && d.hasLoc;
   const thumbSize = useThumb ? 21 * s : 0, gap = useThumb ? 2.4 * s : 0;
   const boxW = layout === 'strip' ? W : Math.min(W - 2 * margin, 112 * s);
   const textW = Math.max(10 * s, boxW - (layout === 'text' ? 0 : 2 * pad) - thumbSize - gap);
@@ -993,10 +1355,10 @@ function drawStamp(ctx, W, H) {
   const contentH = Math.max(textH, thumbSize);
   const boxH = layout === 'text' ? textH : contentH + 2 * pad;
   const bx = layout === 'strip' ? 0 : margin;
-  const by = S.pos === 'top' ? (layout === 'strip' ? 0 : margin) : H - boxH - (layout === 'strip' ? 0 : margin);
+  const by = st.pos === 'top' ? (layout === 'strip' ? 0 : margin) : H - boxH - (layout === 'strip' ? 0 : margin);
 
   if (layout !== 'text') { ctx.fillStyle = panel; ctx.fillRect(bx, by, boxW, boxH); }
-  if (useThumb) drawMapThumb(ctx, bx + pad, by + pad, thumbSize, s, S.mapDesign, thumbVariants && thumbVariants[S.mapDesign], true);
+  if (useThumb) drawMapThumb(ctx, bx + pad, by + pad, thumbSize, s, st.mapDesign, variants && variants[st.mapDesign], true);
   const textX = layout === 'text' ? bx : bx + pad + thumbSize + gap;
   let y = layout === 'text' ? by : by + pad + (contentH - textH) / 2;
   ctx.textBaseline = 'alphabetic'; ctx.lineJoin = 'round';
@@ -1043,7 +1405,8 @@ function updateSaveState() {
 }
 
 /* ================= file handling ================= */
-async function loadFile(file) {
+async function loadFile(file) { busy(true); try { await loadFileInner(file); } finally { busy(false); } }
+async function loadFileInner(file) {
   if (!file) return;
   const looksImage = /^image\//.test(file.type) || /\.(jpe?g|png|webp|gif|bmp|avif|heic|heif)$/i.test(file.name);
   if (!looksImage) { setStatus(el.fileName, 'That file isn’t an image. Choose a JPEG, PNG or WebP photo.', true); return; }
@@ -1060,6 +1423,7 @@ async function loadFile(file) {
   setStatus(el.fileName, `${file.name} · ${im.naturalWidth} × ${im.naturalHeight} px`);
   el.stageName.textContent = file.name; el.stageDims.textContent = `${im.naturalWidth} × ${im.naturalHeight} px`;
   el.drop.hidden = true; el.preview.hidden = false; document.body.classList.add('has-photo');
+  el.preview.classList.remove('pop'); void el.preview.offsetWidth; el.preview.classList.add('pop');
   el.pickBtn.textContent = 'Replace photo';
 
   el.exifNote.hidden = true;
@@ -1098,7 +1462,7 @@ function applyFound() {
   if (!S.titleDirty) { S.title = S.foundTitle; el.title.value = S.title; }
   el.resetAddr.hidden = !(S.addrDirty && S.foundAddr && S.addr.trim() !== S.foundAddr);
 }
-const reverseSoon = debounce(async () => {
+async function reverseNow() {
   const my = ++revSeq, lat = S.lat, lng = S.lng;
   try {
     const r = await geocodeReverse(lat, lng);
@@ -1110,11 +1474,12 @@ const reverseSoon = debounce(async () => {
     setStatus(el.qStatus, 'Couldn’t look up an address for this point right now. You can type one under “Text on the photo”.', true);
   }
   schedule();
-}, 450);
+}
+const reverseSoon = debounce(async () => { busy(true); try { await reverseNow(); } finally { busy(false); } }, 450);
 
 function setLocation(lat, lng, opts = {}) {
   S.lat = lat; S.lng = lng; S.approx = !!opts.approx;
-  map.setPin(lat, lng);
+  map.setPin(lat, lng, !opts.fromPick);
   if (opts.view !== false) map.setView(lat, lng, opts.zoom || Math.max(map.zoom, 16));
   updateCoordText();
   prepareThumb();
@@ -1129,6 +1494,7 @@ function showResults(list, selected) {
   el.results.hidden = list.length < 2;
   list.forEach((r, i) => {
     const li = document.createElement('li'), b = document.createElement('button');
+    li.style.setProperty('--i', i);
     b.type = 'button'; b.textContent = r.display;
     if (r.kind) { const sub = document.createElement('span'); sub.className = 'sub'; sub.textContent = r.kind; b.appendChild(sub); }
     if (i === selected) b.setAttribute('aria-current', 'true');
@@ -1152,7 +1518,7 @@ async function findPlace() {
     setStatus(el.qStatus, parsed.approx ? 'Used the map centre from that link. Drag the pin if the spot is off.' : `Pin placed at ${plainCoords(parsed.lat, parsed.lng)}. Looking up the address…`);
     return;
   }
-  el.findBtn.disabled = true; el.findBtn.textContent = 'Finding…';
+  busy(true); el.findBtn.disabled = true; el.findBtn.textContent = 'Finding…';
   setStatus(el.qStatus, 'Searching…');
   try {
     const list = await geocodeSearch(parsed.q);
@@ -1165,7 +1531,7 @@ async function findPlace() {
     }
   } catch (e) {
     setStatus(el.qStatus, 'Couldn’t reach the address search. Check your connection and try again, or paste coordinates.', true);
-  } finally { el.findBtn.disabled = false; el.findBtn.textContent = 'Find place'; }
+  } finally { busy(false); el.findBtn.disabled = false; el.findBtn.textContent = 'Find place'; }
 }
 function useMyLocation() {
   if (!navigator.geolocation) { setStatus(el.qStatus, 'This browser can’t share a location. Search for an address instead.', true); return; }
@@ -1194,7 +1560,7 @@ async function makeBlob() {
 }
 async function download() {
   if (el.dlBtn.disabled) return;
-  el.dlBtn.disabled = true; const label = el.dlBtn.textContent; el.dlBtn.textContent = 'Preparing…';
+  busy(true); el.dlBtn.disabled = true; const label = el.dlBtn.textContent; el.dlBtn.textContent = 'Preparing…';
   try {
     await fontsReady;
     const blob = await makeBlob(), a = document.createElement('a'), u = URL.createObjectURL(blob);
@@ -1204,7 +1570,7 @@ async function download() {
     el.saveMsg.textContent = `Saved ${a.download} (${(blob.size / 1048576).toFixed(1)} MB).`;
   } catch (e) {
     el.saveMsg.textContent = 'Couldn’t create the image. Try the “Up to 4096 px” resolution, or a smaller photo.';
-  } finally { el.dlBtn.textContent = label; updateDlOnly(); }
+  } finally { busy(false); el.dlBtn.textContent = label; updateDlOnly(); }
 }
 function updateDlOnly() { const hasPlace = S.lat != null || S.addr.trim() || S.title.trim(); el.dlBtn.disabled = !(S.img && hasPlace); }
 async function share() {
@@ -1249,6 +1615,202 @@ function bindCheck(id, key) {
 
 const fontsReady = Promise.all([document.fonts.load('400 20px "Instrument Sans"'), document.fonts.load('700 20px "Instrument Sans"')]).catch(() => {});
 
+/* ================= site: routing, loading, hero, rating, sharing ================= */
+const SHARE_TEXT = 'Chumi Geo Tag puts the place, address and time on any photo. Free, and your photo never leaves your device.';
+function siteUrl() {
+  if (/^https?:$/.test(location.protocol) && !/^(localhost|127\.|\[::1\])/.test(location.hostname)) return location.origin + location.pathname;
+  return CONFIG.siteUrl;
+}
+async function copyText(text) {
+  try { await navigator.clipboard.writeText(text); return true; } catch (e) {}
+  try {
+    const t = document.createElement('textarea'); t.value = text; t.setAttribute('readonly', ''); t.className = 'sr';
+    document.body.appendChild(t); t.select(); const ok = document.execCommand('copy'); t.remove(); return ok;
+  } catch (e) { return false; }
+}
+
+/* ---- rating: kept on this device; optional hand-off to a GitHub issue ---- */
+const RATE_KEY = 'chumi:rating', RATE_WORDS = ['', 'Needs work', 'Okay', 'Good', 'Great', 'Love it'];
+const STAR = 'M12 2.5l2.9 6.1 6.7.8-4.9 4.6 1.3 6.6L12 17.3 6 20.6l1.3-6.6L2.4 9.4l6.7-.8z';
+let rating = { v: 0, note: '' }, rateN = 0;
+try { const o = JSON.parse(localStorage.getItem(RATE_KEY) || 'null'); if (o && o.v >= 1 && o.v <= 5) rating = { v: o.v | 0, note: String(o.note || '').slice(0, 400) }; } catch (e) {}
+const saveRating = () => { try { localStorage.setItem(RATE_KEY, JSON.stringify({ ...rating, at: Date.now() })); } catch (e) {} };
+const feedbackText = () => `Rating: ${rating.v} of 5 (${RATE_WORDS[rating.v]})\n${rating.note ? '\n' + rating.note + '\n' : ''}\nChumi Geo Tag: ${siteUrl()}`;
+function renderRates() {
+  document.querySelectorAll('.rate').forEach(root => {
+    root.querySelector('.starrow').dataset.show = String(rating.v);
+    root.querySelectorAll('input[type=radio]').forEach(r => { r.checked = +r.value === rating.v; });
+    root.querySelector('.rate-msg').textContent = rating.v ? `You rated it ${rating.v} of 5: ${RATE_WORDS[rating.v]}.` : 'Tap a star to rate.';
+    root.querySelector('.rate-more').hidden = !rating.v;
+    const note = root.querySelector('textarea'); if (document.activeElement !== note) note.value = rating.note;
+    root.querySelector('[data-gh]').href = `${CONFIG.repo}/issues/new?title=${encodeURIComponent(`Rating: ${rating.v}/5 for Chumi Geo Tag`)}&body=${encodeURIComponent(feedbackText())}`;
+  });
+}
+function mountRate(root) {
+  const n = ++rateN;
+  root.innerHTML = `<div class="rate">
+    <fieldset><legend class="sr">Rate Chumi Geo Tag from 1 to 5 stars</legend>
+      <div class="starrow" data-show="0">${[1, 2, 3, 4, 5].map(i => `<input type="radio" name="rate-${n}" id="rate-${n}-${i}" value="${i}"><label for="rate-${n}-${i}" data-v="${i}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="${STAR}"/></svg><span class="sr">${i} star${i > 1 ? 's' : ''}</span></label>`).join('')}</div>
+    </fieldset>
+    <p class="rate-msg" role="status" aria-live="polite"></p>
+    <div class="rate-more" hidden>
+      <div class="group"><label for="rate-${n}-note">Tell us more (optional)</label><textarea id="rate-${n}-note" rows="3" maxlength="400" placeholder="What worked, what didn’t, what you’d add"></textarea></div>
+      <div class="row wrap"><a class="btn primary" data-gh href="${CONFIG.repo}/issues/new" target="_blank" rel="noopener noreferrer">Send on GitHub</a><button type="button" class="btn quiet" data-copy>Copy feedback</button></div>
+      <p class="hint">Your rating is saved on this device only. Sending it on GitHub shares it with the maker and needs a free GitHub account.</p>
+    </div></div>`;
+  const el = root.firstElementChild, row = el.querySelector('.starrow');
+  el.querySelectorAll('input[type=radio]').forEach(r => r.addEventListener('change', () => { rating.v = +r.value; saveRating(); renderRates(); }));
+  el.querySelectorAll('label[data-v]').forEach(l => l.addEventListener('pointerenter', () => { row.dataset.show = l.dataset.v; }));
+  row.addEventListener('pointerleave', () => { row.dataset.show = String(rating.v); });
+  el.querySelector('textarea').addEventListener('input', e => { rating.note = e.target.value.slice(0, 400); saveRating(); renderRates(); });
+  el.querySelector('[data-copy]').addEventListener('click', async e => {
+    const b = e.currentTarget, old = b.textContent, ok = await copyText(feedbackText());
+    b.textContent = ok ? 'Copied' : 'Couldn’t copy'; setTimeout(() => { b.textContent = old; }, 1700);
+  });
+}
+
+/* ---- sharing ---- */
+function mountShare(root) {
+  const n = ++rateN, url = siteUrl(), u = encodeURIComponent(url), t = encodeURIComponent(SHARE_TEXT);
+  const nets = [
+    ['WhatsApp', `https://wa.me/?text=${encodeURIComponent(SHARE_TEXT + ' ' + url)}`],
+    ['Telegram', `https://t.me/share/url?url=${u}&text=${t}`],
+    ['X', `https://twitter.com/intent/tweet?text=${t}&url=${u}`],
+    ['Facebook', `https://www.facebook.com/sharer/sharer.php?u=${u}`],
+    ['Email', `mailto:?subject=${encodeURIComponent('Chumi Geo Tag')}&body=${encodeURIComponent(SHARE_TEXT + '\n\n' + url)}`],
+  ];
+  root.innerHTML = `<div class="share">
+    <button type="button" class="btn primary" data-native hidden>Share with friends</button>
+    <div class="group"><label for="sl-${n}">Link to share</label><div class="linkfield"><input type="text" id="sl-${n}" readonly><button type="button" class="btn quiet" data-copylink>Copy link</button></div></div>
+    <ul class="sharelist">${nets.map(([name, href]) => `<li><a class="btn" href="${href}"${href.startsWith('mailto:') ? '' : ' target="_blank" rel="noopener noreferrer"'}>${name}</a></li>`).join('')}</ul>
+    <p class="share-msg" role="status" aria-live="polite"></p></div>`;
+  const el = root.firstElementChild, msg = el.querySelector('.share-msg'), input = el.querySelector('input');
+  input.value = url;
+  input.addEventListener('focus', () => input.select());
+  el.querySelector('[data-copylink]').addEventListener('click', async () => { msg.textContent = (await copyText(url)) ? 'Link copied. Paste it to a friend.' : 'Couldn’t copy. Select the link and copy it.'; });
+  if (navigator.share) {
+    const b = el.querySelector('[data-native]'); b.hidden = false;
+    b.addEventListener('click', () => { navigator.share({ title: 'Chumi Geo Tag', text: SHARE_TEXT, url }).catch(() => {}); });
+  }
+}
+
+/* ---- dialogs ---- */
+function openDlg(id) { const d = $(id); if (d && !d.open) d.showModal(); }
+function closeDlg(d) {
+  if (!d.open) return;
+  if (REDUCED) { d.close(); return; }
+  d.classList.add('closing');
+  setTimeout(() => { d.close(); d.classList.remove('closing'); }, 170);
+}
+
+/* ---- landing hero: the real stamp renderer on a drawn sample photo ---- */
+const DEMO = { st: { layout: 'card', pos: 'bottom', theme: 'dark', scale: 1, showMap: true, mapDesign: 'street' } };
+function demoData() {
+  const p = parseDT(nowLocalValue());
+  return { title: 'Dubai, United Arab Emirates', addr: 'Sheikh Mohammed bin Rashid Boulevard, Downtown Dubai', note: '',
+    coords: fmtCoords(25.197525, 55.274288, 'dec'), date: formatDT(p, -new Date().getTimezoneOffset(), 'gmc'), hasLoc: true };
+}
+function drawScene(ctx, W, H) {
+  const R = rng(11), hz = H * 0.62;
+  const sky = ['#6F8FC9', '#86A3D6', '#A4B9E0', '#C6CFE4', '#E7D4C8', '#F3CCA4'];
+  sky.forEach((c, i) => { ctx.fillStyle = c; ctx.fillRect(0, Math.floor(hz * i / sky.length), W, Math.ceil(hz / sky.length) + 1); });
+  ctx.fillStyle = '#FFE9BA'; ctx.beginPath(); ctx.arc(W * 0.79, hz * 0.8, W * 0.07, 0, Math.PI * 2); ctx.fill();
+  const layer = (col, minH, maxH, minW, maxW, windows) => {
+    let x = -W * 0.02;
+    while (x < W) {
+      const bw = minW + R() * (maxW - minW), bh = minH + R() * (maxH - minH);
+      ctx.fillStyle = col; ctx.fillRect(x, hz - bh, bw, bh);
+      if (windows) for (let wy = hz - bh + H * 0.02; wy < hz - H * 0.02; wy += H * 0.022) for (let wx = x + bw * 0.12; wx < x + bw * 0.86 - W * 0.008; wx += W * 0.02) {
+        ctx.fillStyle = R() < 0.42 ? '#FFD98A' : 'rgba(255,255,255,0.10)'; ctx.fillRect(wx, wy, W * 0.008, H * 0.011);
+      }
+      x += bw + R() * W * 0.006;
+    }
+  };
+  layer('#A9B7CE', H * 0.06, H * 0.16, W * 0.05, W * 0.10, false);
+  layer('#7587A3', H * 0.08, H * 0.22, W * 0.06, W * 0.11, false);
+  let cy = hz; const sx = W * 0.36; ctx.fillStyle = '#46546E';
+  for (const [w, h] of [[0.09, 0.17], [0.064, 0.13], [0.044, 0.11], [0.028, 0.08], [0.012, 0.06]]) { ctx.fillRect(sx - w * W / 2, cy - h * H, w * W, h * H); cy -= h * H; }
+  ctx.fillRect(sx - W * 0.003, cy - H * 0.1, W * 0.006, H * 0.1);
+  layer('#33415A', H * 0.05, H * 0.19, W * 0.07, W * 0.12, true);
+  ctx.fillStyle = '#BC9468'; ctx.fillRect(0, hz, W, H - hz);
+  ctx.fillStyle = '#A97F55'; ctx.beginPath(); ctx.ellipse(W * 0.2, hz + H * 0.1, W * 0.5, H * 0.06, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = '#C9A678'; ctx.beginPath(); ctx.ellipse(W * 0.85, hz + H * 0.17, W * 0.45, H * 0.07, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = '#8F6A47'; ctx.fillRect(0, H * 0.9, W, H * 0.1);
+}
+function paintHeroStamp() {
+  const b = $('heroStamp'), g = b.getContext('2d'); g.clearRect(0, 0, b.width, b.height);
+  drawStamp(g, b.width, b.height, DEMO.st, demoData(), getPlaceholder());
+}
+function drawHero() {
+  const a = $('heroPhoto'), b = $('heroStamp'), W = 1000, H = 1250;
+  a.width = W; a.height = H; drawScene(a.getContext('2d'), W, H);
+  b.width = W; b.height = H; paintHeroStamp();
+}
+let swapToken = 0;
+async function swapDesign(design) {
+  const my = ++swapToken, b = $('heroStamp');
+  DEMO.st.mapDesign = design;
+  if (REDUCED) { paintHeroStamp(); return; }
+  const out = b.animate([{ opacity: 1, transform: 'translateY(0)' }, { opacity: 0, transform: 'translateY(10px)' }], { duration: 150, easing: 'ease-in', fill: 'forwards' });
+  try { await out.finished; } catch (e) {}
+  if (my !== swapToken) return;
+  paintHeroStamp();
+  b.animate([{ opacity: 0, transform: 'translateY(10px)' }, { opacity: 1, transform: 'translateY(0)' }], { duration: 340, easing: 'cubic-bezier(.22,1,.36,1)' });
+  out.cancel();
+}
+function drawFeatureThumbs() {
+  const v = getPlaceholder();
+  document.querySelectorAll('[data-feature-thumb]').forEach(cv => {
+    const g = cv.getContext('2d'), n = cv.width, d = cv.dataset.featureThumb;
+    g.clearRect(0, 0, n, n); drawMapThumb(g, 0, 0, n, n / 21, d, v[d], false);
+  });
+}
+let userPicked = false, heroVisible = true, cycleTimer = 0;
+function startCycle() {
+  if (REDUCED || cycleTimer) return;
+  cycleTimer = setInterval(() => {
+    if (userPicked || !heroVisible || document.hidden || document.documentElement.dataset.view !== 'home') return;
+    const order = ['street', 'mono', 'night', 'satellite'], next = order[(order.indexOf(DEMO.st.mapDesign) + 1) % order.length];
+    const r = document.querySelector(`input[name=heroDesign][value=${next}]`); r.checked = true; swapDesign(next);
+  }, 3600);
+}
+
+/* ---- routing between the landing page and the tool ---- */
+let lastView = '';
+function enter(el) { el.classList.remove('enter'); void el.offsetWidth; el.classList.add('enter'); }
+function route(first) {
+  const hash = location.hash.slice(1), v = hash === 'app' ? 'app' : 'home', changed = v !== lastView;
+  $('view-home').hidden = v !== 'home'; $('view-app').hidden = v !== 'app';
+  document.documentElement.dataset.view = v;
+  if (changed) { if (lastView) document.documentElement.classList.add('intro-done'); enter($('view-' + v)); lastView = v; if (v === 'app') map.render(); }
+  if (v === 'home') {
+    const target = hash && document.getElementById(hash);
+    if (target && (changed || first)) target.scrollIntoView({ behavior: first || REDUCED ? 'auto' : 'smooth', block: 'start' });
+    else if (!target && changed) window.scrollTo(0, 0);
+  } else if (changed) window.scrollTo(0, 0);
+  document.title = v === 'app' ? 'Chumi Geo Tag: stamp a photo' : 'Chumi Geo Tag: add location, address and time to a photo';
+}
+
+function initSite() {
+  document.querySelectorAll('[data-mount=rate]').forEach(mountRate);
+  document.querySelectorAll('[data-mount=share]').forEach(mountShare);
+  renderRates();
+  document.querySelectorAll('[data-open]').forEach(b => b.addEventListener('click', () => openDlg('dlg-' + b.dataset.open)));
+  document.querySelectorAll('dialog').forEach(d => {
+    d.addEventListener('cancel', e => { e.preventDefault(); closeDlg(d); });
+    d.addEventListener('click', e => { if (e.target === d) closeDlg(d); });
+    d.querySelectorAll('[data-close]').forEach(b => b.addEventListener('click', () => closeDlg(d)));
+  });
+  const io = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } }), { threshold: 0.12, rootMargin: '0px 0px -6% 0px' });
+  document.querySelectorAll('.reveal').forEach(n => io.observe(n));
+  new IntersectionObserver(([e]) => { heroVisible = e.isIntersecting; }, { threshold: 0.2 }).observe(document.querySelector('.hero'));
+  document.querySelectorAll('input[name=heroDesign]').forEach(r => r.addEventListener('change', () => { userPicked = true; swapDesign(r.value); }));
+  fontsReady.then(() => { drawHero(); drawFeatureThumbs(); startCycle(); });
+  window.addEventListener('hashchange', () => route(false));
+  route(true);
+  setTimeout(() => document.documentElement.classList.add('intro-done'), 3200);
+}
+
 function init() {
   ['pickBtn','pickBtn2','file','q','findBtn','qStatus','results','map','coordText','locateBtn','title','addr','resetAddr','note','dt','nowBtn','tz','dfmt','scale','scaleOut','showMap','chkMapWrap','showCoords','showDate','coordFmt','quality','qualityOut','qualityWrap','maxEdge','writeExif','exifWrap','drop','preview','stageName','stageDims','stageBody','saveMsg','dlBtn','shareBtn','fileName','exifNote']
     .forEach(id => el[id] = $(id));
@@ -1282,7 +1844,7 @@ function init() {
   el.resetAddr.addEventListener('click', () => { S.addrDirty = false; S.titleDirty = false; applyFound(); schedule(); });
 
   // map + search
-  map = new SlippyMap(el.map, (lat, lng) => { setLocation(lat, lng, { view: false }); setStatus(el.qStatus, 'Pin moved. Looking up the address…'); });
+  map = new SlippyMap(el.map, (lat, lng) => { setLocation(lat, lng, { view: false, fromPick: true }); setStatus(el.qStatus, 'Pin moved. Looking up the address…'); });
   el.findBtn.addEventListener('click', findPlace);
   el.q.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); findPlace(); } });
   el.locateBtn.addEventListener('click', useMyLocation);
@@ -1303,6 +1865,7 @@ function init() {
   window.addEventListener('beforeunload', () => { if (S.imgUrl) URL.revokeObjectURL(S.imgUrl); });
   fontsReady.then(schedule);
   schedule();
+  initSite();
 }
 init();
 })();

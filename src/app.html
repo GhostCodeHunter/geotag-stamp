@@ -481,7 +481,7 @@ dialog.closing::backdrop{animation:fadeOut .18s ease-in both}
             <div class="reveal r1"><dt>Reads Google Maps links.</dt><dd>Paste a place link, a link with coordinates, or plain latitude and longitude. The pin lands where it should.</dd></div>
             <div class="reveal r2"><dt>Writes a real geotag.</dt><dd>JPEG downloads carry the GPS position, date and time zone in the file, so gallery apps and maps place the photo correctly.</dd></div>
             <div class="reveal r3"><dt>Stamps a whole batch.</dt><dd>Add many photos at once. The same place goes on every one. Save them as a ZIP, or as a PDF with one, two or four photos per page.</dd></div>
-            <div class="reveal r3"><dt>Edits an existing geotag.</dt><dd>If a photo already has a location or date, they load as your starting point.</dd></div>
+            <div class="reveal r3"><dt>Removes the old geotag.</dt><dd>If a photo already carries a location, it is dropped automatically. The saved file holds only the place you chose.</dd></div>
             <div class="reveal r4"><dt>Private by design.</dt><dd>Your photo is never uploaded. The page can only talk to the map and address services, and nothing else.</dd></div>
           </dl>
         </div>
@@ -715,7 +715,7 @@ dialog.closing::backdrop{animation:fadeOut .18s ease-in both}
         </select>
       </div>
       <label class="check" id="exifWrap"><input type="checkbox" id="writeExif" checked>Also write the location and time into the file data (EXIF)</label>
-      <p class="hint">Gallery apps and maps read EXIF to place the photo. Other camera details from the original aren't carried over.</p>
+      <p class="hint">Gallery apps and maps read EXIF to place the photo. Nothing else from the original's data is carried over, including any location it already had.</p>
       <div class="group">
         <label for="pdfPage">PDF page</label>
         <select id="pdfPage"><option value="a4">A4, each photo fits the page</option><option value="photo">Same shape as each photo</option></select>
@@ -1538,8 +1538,8 @@ async function addFiles(list) {
       const f = take[i], url = URL.createObjectURL(f);
       try {
         const im = await decodeUrl(url);
-        const it = { id: ++itemSeq, file: f, name: f.name, url, w: im.naturalWidth, h: im.naturalHeight, thumb: await makeThumb(im), dt: '', tz: null, ex: null };
-        if (isJpegFile(f)) { try { const ex = readExif(await f.arrayBuffer()); if (ex) { it.ex = ex; if (ex.dt) { it.dt = ex.dt; it.tz = ex.tz != null ? ex.tz : null; } } } catch (e) {} }
+        const it = { id: ++itemSeq, file: f, name: f.name, url, w: im.naturalWidth, h: im.naturalHeight, thumb: await makeThumb(im), dt: '', tz: null, hadGps: false };
+        if (isJpegFile(f)) { try { const ex = readExif(await f.arrayBuffer()); if (ex) { it.hadGps = ex.lat != null; if (ex.dt) { it.dt = ex.dt; it.tz = ex.tz != null ? ex.tz : null; } } /* the old coordinates are never kept */ } catch (e) {} }
         items.push(it);
       } catch (e) { URL.revokeObjectURL(url); failed++; }
       await tick();
@@ -1554,9 +1554,7 @@ async function addFiles(list) {
     if (failed) notes.push(`${failed} couldn’t be opened`);
     if (files.length > take.length) notes.push(`only the first ${MAX_PHOTOS} photos are kept`);
     if (notes.length) setStatus(el.fileName, `${photoWord(items.length)} chosen. ${notes.join('; ')}.`);
-    el.exifNote.hidden = true;
-    const withData = items.slice(first).find(x => x.ex);
-    if (withData) applyPhotoData(withData.ex, withData.name);
+    showPhotoNotes(items.slice(first));
   } finally { busy(false); }
 }
 function afterRemove() {
@@ -1571,14 +1569,18 @@ function afterRemove() {
 function removeCurrent() { if (cur < 0) return; const [it] = items.splice(cur, 1); URL.revokeObjectURL(it.url); afterRemove(); }
 function clearAll() { items.forEach(i => URL.revokeObjectURL(i.url)); items = []; afterRemove(); }
 function stepItem(d) { if (items.length > 1) selectItem((cur + d + items.length) % items.length); }
-function applyPhotoData(ex, name) {
-  const bits = [];
-  if (ex.lat != null && S.lat == null) { bits.push('location'); setLocation(ex.lat, ex.lng, { zoom: 16 }); }
-  if (ex.dt && !S.dtTouched) { bits.push('date and time'); el.dt.value = ex.dt; S.dt = ex.dt; if (ex.tz != null) setTz(ex.tz); refreshDfmtLabels(); }
-  if (bits.length) {
-    el.exifNote.hidden = false;
-    el.exifNote.textContent = `${items.length > 1 ? `“${name}”` : 'This photo'} already carried a ${bits.join(' and ')}. They’re loaded as the starting point; change them below.`;
+/* A location already inside a photo is dropped, not reused: the saved files are re-encoded and carry only what you set. */
+function showPhotoNotes(fresh) {
+  const gps = fresh.filter(x => x.hadGps).length, dated = fresh.find(x => x.dt), parts = [];
+  if (gps) {
+    parts.push(fresh.length === 1 ? 'This photo had a location in its data.' : gps === fresh.length ? `All ${fresh.length} photos had a location in their data.` : `${gps} of ${fresh.length} photos had a location in their data.`);
+    parts.push('It was removed automatically. The saved files carry only the location you set.');
   }
+  if (dated && !S.dtTouched) {
+    el.dt.value = dated.dt; S.dt = dated.dt; if (dated.tz != null) setTz(dated.tz); refreshDfmtLabels();
+    parts.push(`The date and time from ${fresh.length > 1 ? `\u201C${dated.name}\u201D` : 'the photo'} were loaded as the starting point.`);
+  }
+  el.exifNote.hidden = !parts.length; el.exifNote.textContent = parts.join(' ');
 }
 
 /* ================= location flow ================= */

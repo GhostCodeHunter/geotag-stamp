@@ -1,13 +1,14 @@
-# Geotag Stamp
+# Chumi Geo Tag
 
 Put a place, an address and a time on any photo. Choose a photo, set the location from an address, a Google Maps link, coordinates or a pin on the map, pick the date and time, and download the photo with a geotag stamp drawn on it.
 
-It is one static page. It runs entirely in the browser, needs no server and no account, and **your photo is never uploaded**.
+It is one static page, built in plain HTML, CSS and JavaScript. It runs entirely in the browser, needs no server and no account, and **your photo is never uploaded**.
 
 ## What it does
 
 - **Location from anything:** an address, a full Google Maps link (place links, `?q=`, `ll=`, `@lat,lng`), plain or degrees-minutes-seconds coordinates, a click or drag on the map, or your device location.
 - **Stamp on the photo:** place name, address, coordinates, date and time, an optional note, and a map thumbnail. Three layouts (map card, strip, text only), top or bottom, dark or light, adjustable size.
+- **Three map thumbnail designs:** Street (full-colour map, square, pin), Mono (grey map, square, target dot) and Night (dark map, round, pin). Pick one from the style cards, which preview each design with your location.
 - **Date and time:** any date, time and time zone, in four date styles.
 - **Real geotag in the file:** JPEG downloads also carry the GPS position, date and time zone in their EXIF data, so gallery apps and maps place the photo correctly.
 - **Edits an existing geotag:** if the photo already has a location or date in its EXIF data, they load as the starting point.
@@ -25,7 +26,7 @@ With git:
 ```bash
 git init -b main
 git add .
-git commit -m "Geotag Stamp"
+git commit -m "Chumi Geo Tag"
 git remote add origin https://github.com/<your-username>/geotag-stamp.git
 git push -u origin main
 ```
@@ -33,7 +34,7 @@ git push -u origin main
 With the GitHub CLI, in one step:
 
 ```bash
-git init -b main && git add . && git commit -m "Geotag Stamp"
+git init -b main && git add . && git commit -m "Chumi Geo Tag"
 gh repo create geotag-stamp --public --source=. --push
 gh api -X POST repos/{owner}/geotag-stamp/pages -f "source[branch]=main" -f "source[path]=/"
 ```

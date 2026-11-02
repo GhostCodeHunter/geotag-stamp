@@ -3,13 +3,13 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Geotag Stamp: add location, address and time to a photo</title>
+<title>Chumi Geo Tag: add location, address and time to a photo</title>
 <meta name="description" content="Upload a photo, set a place from an address, Google Maps link or map pin, pick a date and time, and download the photo with a geotag stamp.">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-qyOKC16SHo1n9xxDG/NGhjjyhOcyc4fb+wbQqPC3zoQ='; style-src 'sha256-nEKohx0MON3jrrXsCmQFcTZ1BhznrxtSf/4JlPaQz4o='; img-src 'self' data: blob: https://tile.openstreetmap.org; font-src data:; connect-src https://nominatim.openstreetmap.org https://photon.komoot.io; base-uri 'none'; form-action 'none'; object-src 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-Ut3G0pWpQBrPAzoS8iqlZk5NRucrX/0HYHQYv/riGkg='; style-src 'sha256-E7W50YnYPDu5C6U+pLyJHSHbm3oqvrgHCY3zZD8apa8='; img-src 'self' data: blob: https://tile.openstreetmap.org; font-src data:; connect-src https://nominatim.openstreetmap.org https://photon.komoot.io; base-uri 'none'; form-action 'none'; object-src 'none'">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <meta name="theme-color" content="#E8EBE6">
 <meta property="og:type" content="website">
-<meta property="og:title" content="Geotag Stamp">
+<meta property="og:title" content="Chumi Geo Tag">
 <meta property="og:description" content="Put a place, an address and a time on any photo. Runs in your browser; your photo is never uploaded.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 34 46'%3E%3Cpath d='M17 45C17 45 2 28.5 2 17a15 15 0 0 1 30 0c0 11.5-15 28-15 28z' fill='%23C8361F'/%3E%3Ccircle cx='17' cy='17' r='5.5' fill='%23fff'/%3E%3C/svg%3E">
 <style>
@@ -95,6 +95,13 @@ input::placeholder,textarea::placeholder{color:#6A746D}
 .seg input:focus-visible + label{outline:2px solid var(--ink);outline-offset:2px;z-index:2}
 .seg input:disabled + label{color:#8A938C;cursor:not-allowed}
 
+.cards{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;position:relative}
+.cards input{position:absolute;opacity:0;width:1px;height:1px}
+.cards label{display:flex;flex-direction:column;align-items:center;gap:6px;padding:8px 6px 8px;border:1px solid var(--line);background:var(--field);cursor:pointer;font-weight:400;font-size:var(--t-m);line-height:1.15;min-width:0}
+.cards canvas{display:block;width:100%;max-width:84px;aspect-ratio:1;background:transparent}
+.cards input:checked + label{background:var(--ink);border-color:var(--ink);color:var(--panel);font-weight:700}
+.cards input:focus-visible + label{outline:2px solid var(--ink);outline-offset:2px}
+.cards input:disabled + label{opacity:.45;cursor:not-allowed}
 .check{display:flex;align-items:center;gap:10px;min-height:32px;font-weight:400;cursor:pointer}
 .check input{width:20px;height:20px;margin:0;accent-color:var(--ink);flex:none}
 .check.off{color:#7A847D}
@@ -184,7 +191,7 @@ input::placeholder,textarea::placeholder{color:#6A746D}
 <header class="top">
   <h1 class="brand">
     <svg viewBox="0 0 34 46" aria-hidden="true"><path d="M17 45C17 45 2 28.5 2 17a15 15 0 0 1 30 0c0 11.500-15 28-15 28z" fill="#C8361F"/><circle cx="17" cy="17" r="5.500" fill="#fff"/></svg>
-    Geotag Stamp
+    Chumi Geo Tag
   </h1>
   <p class="tagline">Add a place, an address and a time to a photo.</p>
 </header>
@@ -293,6 +300,14 @@ input::placeholder,textarea::placeholder{color:#6A746D}
         <label class="check"><input type="checkbox" id="showCoords" checked>Coordinates</label>
         <label class="check"><input type="checkbox" id="showDate" checked>Date and time</label>
       </fieldset>
+      <fieldset id="mapDesignSet">
+        <legend>Map thumbnail style</legend>
+        <div class="cards" role="radiogroup">
+          <input type="radio" name="mapDesign" id="md-street" value="street" checked><label for="md-street"><canvas width="168" height="168" data-design="street" aria-hidden="true"></canvas>Street</label>
+          <input type="radio" name="mapDesign" id="md-mono" value="mono"><label for="md-mono"><canvas width="168" height="168" data-design="mono" aria-hidden="true"></canvas>Mono</label>
+          <input type="radio" name="mapDesign" id="md-night" value="night"><label for="md-night"><canvas width="168" height="168" data-design="night" aria-hidden="true"></canvas>Night</label>
+        </div>
+      </fieldset>
       <div class="group">
         <label for="coordFmt">Coordinate style</label>
         <select id="coordFmt">
@@ -346,7 +361,7 @@ input::placeholder,textarea::placeholder{color:#6A746D}
     </div>
   </section>
 </main>
-<noscript><p class="nojs">Geotag Stamp needs JavaScript to read and draw on your photo.</p></noscript>
+<noscript><p class="nojs">Chumi Geo Tag needs JavaScript to read and draw on your photo.</p></noscript>
 
 <script>
 (() => {
@@ -380,14 +395,16 @@ const S = {
   lat: null, lng: null,
   title: '', addr: '', note: '',
   addrDirty: false, titleDirty: false, foundAddr: '', foundTitle: '', approx: false,
+  mapDesign: 'street',
   dt: '', dtTouched: false, tz: -new Date().getTimezoneOffset(),
   layout: 'card', pos: 'bottom', theme: 'dark', scale: 1,
   showMap: true, showCoords: true, showDate: true, coordFmt: 'dec', dfmt: 'gmc',
   fmt: 'jpeg', quality: 92, maxEdge: 4096, writeExif: true,
 };
-const PERSIST = ['layout','pos','theme','scale','showMap','showCoords','showDate','coordFmt','dfmt','fmt','quality','maxEdge','writeExif'];
+const PERSIST = ['layout','pos','theme','scale','mapDesign','showMap','showCoords','showDate','coordFmt','dfmt','fmt','quality','maxEdge','writeExif'];
 function loadSettings() {
   try { const o = JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}'); for (const k of PERSIST) if (k in o && typeof o[k] === typeof S[k]) S[k] = o[k]; } catch (e) {}
+  if (!['street', 'mono', 'night'].includes(S.mapDesign)) S.mapDesign = 'street';
 }
 const saveSettings = debounce(() => {
   try { const o = {}; for (const k of PERSIST) o[k] = S[k]; localStorage.setItem(SETTINGS_KEY, JSON.stringify(o)); } catch (e) {}
@@ -767,7 +784,8 @@ function buildExifSegment({ lat, lng, p, tz }) {
   };
   const hasGps = lat != null && lng != null, hasDt = !!p;
   const ifd0 = (exifAt, gpsAt) => {
-    const e = [ent(0x0131, 2, 13, asc('Geotag Stamp'))];
+    const sw = asc('Chumi Geo Tag');
+    const e = [ent(0x0131, 2, sw.length, sw)];
     if (hasDt) e.push(ent(0x8769, 4, 1, u32(exifAt)));
     if (hasGps) e.push(ent(0x8825, 4, 1, u32(gpsAt)));
     return ifd(e, 8);
@@ -826,12 +844,78 @@ function loadTile(z, x, y) {
   }
   return tileCache.get(url);
 }
-let thumbKey = '', thumbCanvas = null, thumbDone = false;
+/* Map thumbnail designs: street (full colour, square, pin), mono (grey, square, target dot),
+   night (dark, round, pin). Mono and night are recoloured from the same OpenStreetMap tiles. */
+let thumbKey = '', thumbVariants = null;
+function recolor(base, mode) {
+  const c = document.createElement('canvas'); c.width = base.width; c.height = base.height;
+  const g = c.getContext('2d'); g.drawImage(base, 0, 0);
+  let img; try { img = g.getImageData(0, 0, c.width, c.height); } catch (e) { return base; }
+  const d = img.data, cl = v => v < 0 ? 0 : v > 255 ? 255 : v;
+  for (let i = 0; i < d.length; i += 4) {
+    let r = d[i], gr = d[i + 1], b = d[i + 2];
+    if (mode === 'mono') {
+      r = gr = b = cl((0.299 * r + 0.587 * gr + 0.114 * b - 128) * 1.1 + 116);
+    } else {
+      r = 255 - r; gr = 255 - gr; b = 255 - b;
+      const nr = -0.574 * r + 1.430 * gr + 0.144 * b, ng = 0.426 * r + 0.430 * gr + 0.144 * b, nb = 0.426 * r + 1.430 * gr - 0.856 * b;
+      r = cl(((nr - 128) * 0.9 + 128) * 0.92); gr = cl(((ng - 128) * 0.9 + 128) * 0.92); b = cl(((nb - 128) * 0.9 + 128) * 0.92);
+    }
+    d[i] = r; d[i + 1] = gr; d[i + 2] = b;
+  }
+  g.putImageData(img, 0, 0); return c;
+}
+const makeVariants = base => ({ street: base, mono: recolor(base, 'mono'), night: recolor(base, 'night') });
+let placeholderVariants = null;
+function getPlaceholder() {   // a drawn sample map, used only for the style cards before a location is set
+  if (placeholderVariants) return placeholderVariants;
+  const c = document.createElement('canvas'); c.width = c.height = 512; const g = c.getContext('2d');
+  g.fillStyle = '#F2EFE9'; g.fillRect(0, 0, 512, 512);
+  g.fillStyle = '#CDE6BE'; g.fillRect(40, 300, 210, 170);
+  g.fillStyle = '#AAD3DF'; g.fillRect(330, 360, 182, 152);
+  g.fillStyle = '#E0DBD2'; for (const [x, y, w, h] of [[300, 40, 90, 70], [410, 60, 70, 110], [60, 60, 120, 90], [210, 190, 70, 60], [330, 200, 120, 70]]) g.fillRect(x, y, w, h);
+  const road = (x1, y1, x2, y2, w, col) => { g.lineCap = 'round'; g.strokeStyle = '#C9C5BC'; g.lineWidth = w + 5; g.beginPath(); g.moveTo(x1, y1); g.lineTo(x2, y2); g.stroke(); g.strokeStyle = col; g.lineWidth = w; g.stroke(); };
+  road(0, 150, 512, 170, 16, '#fff'); road(0, 290, 512, 270, 16, '#fff'); road(170, 0, 190, 512, 16, '#fff'); road(420, 0, 400, 512, 16, '#fff'); road(0, 430, 512, 190, 22, '#F7C86A');
+  return (placeholderVariants = makeVariants(c));
+}
+function drawMarkerDot(ctx, cx, cy, s) {
+  ctx.beginPath(); ctx.arc(cx, cy, 4.6 * s, 0, Math.PI * 2); ctx.fillStyle = 'rgba(200,54,31,0.20)'; ctx.fill();
+  ctx.lineWidth = 0.35 * s; ctx.strokeStyle = ACCENT; ctx.stroke();
+  ctx.beginPath(); ctx.arc(cx, cy, 1.7 * s, 0, Math.PI * 2); ctx.fillStyle = ACCENT; ctx.fill(); ctx.lineWidth = 0.55 * s; ctx.strokeStyle = '#fff'; ctx.stroke();
+}
+function drawMapThumb(ctx, x, y, size, s, design, base, withCredit) {
+  const round = design === 'night', cx = x + size / 2, cy = y + size / 2;
+  ctx.save(); ctx.beginPath();
+  if (round) ctx.arc(cx, cy, size / 2, 0, Math.PI * 2); else ctx.rect(x, y, size, size);
+  ctx.clip();
+  if (base) ctx.drawImage(base, 0, 0, base.width, base.height, x, y, size, size);
+  else { ctx.fillStyle = design === 'night' ? '#1E2327' : design === 'mono' ? '#E6E6E4' : '#DDE1DA'; ctx.fillRect(x, y, size, size); }
+  if (design === 'mono') drawMarkerDot(ctx, cx, cy, s); else drawPin(ctx, cx, cy, s);
+  if (base && withCredit) {
+    ctx.font = `400 ${1.35 * s}px ${FONT}`; ctx.textBaseline = 'alphabetic';
+    const at = '© OpenStreetMap', aw = ctx.measureText(at).width, lift = round ? 2.4 * s : 0;
+    const ax = round ? cx - (aw + 1.2 * s) / 2 : x + size - aw - 1.2 * s;
+    ctx.fillStyle = design === 'night' ? 'rgba(20,24,27,0.82)' : 'rgba(255,255,255,0.85)';
+    ctx.fillRect(ax, y + size - 2.3 * s - lift, aw + 1.2 * s, 2.3 * s);
+    ctx.fillStyle = design === 'night' ? '#C9D1CC' : '#333';
+    ctx.fillText(at, ax + 0.6 * s, y + size - 0.7 * s - lift);
+  }
+  ctx.restore();
+  if (round) { ctx.beginPath(); ctx.arc(cx, cy, size / 2 - 0.3 * s, 0, Math.PI * 2); ctx.lineWidth = 0.6 * s; ctx.strokeStyle = '#fff'; ctx.stroke(); }
+}
+function renderMapPicker() {
+  const vars = thumbVariants || (S.lat == null ? getPlaceholder() : null);
+  document.querySelectorAll('.cards canvas').forEach(cv => {
+    const g = cv.getContext('2d'), n = cv.width;
+    g.clearRect(0, 0, n, n);
+    drawMapThumb(g, 0, 0, n, n / 21, cv.dataset.design, vars && vars[cv.dataset.design], false);
+  });
+}
 async function prepareThumb() {
-  if (S.lat == null) { thumbKey = ''; thumbCanvas = null; thumbDone = false; return; }
+  if (S.lat == null) { thumbKey = ''; thumbVariants = null; renderMapPicker(); return; }
   const key = S.lat.toFixed(6) + ',' + S.lng.toFixed(6);
   if (key === thumbKey) return;
-  thumbKey = key; thumbCanvas = null; thumbDone = false;
+  thumbKey = key; thumbVariants = null; renderMapPicker();
   const z = 18, win = 512, cx = lngToX(S.lng, z), cy = latToY(S.lat, z), x0 = cx - win / 2, y0 = cy - win / 2;
   const jobs = [];
   for (let ty = Math.floor(y0 / TILE); ty <= Math.floor((y0 + win - 1) / TILE); ty++)
@@ -843,8 +927,8 @@ async function prepareThumb() {
   const g = c.getContext('2d'); g.fillStyle = '#E3E6DF'; g.fillRect(0, 0, win, win);
   let any = false;
   for (const { im, tx, ty } of res) if (im) { g.drawImage(im, Math.round(tx * TILE - x0), Math.round(ty * TILE - y0)); any = true; }
-  thumbCanvas = any ? c : null; thumbDone = true;
-  schedule();
+  thumbVariants = any ? makeVariants(c) : null;
+  renderMapPicker(); schedule();
 }
 
 function wrapText(ctx, text, maxW, maxLines) {
@@ -912,19 +996,7 @@ function drawStamp(ctx, W, H) {
   const by = S.pos === 'top' ? (layout === 'strip' ? 0 : margin) : H - boxH - (layout === 'strip' ? 0 : margin);
 
   if (layout !== 'text') { ctx.fillStyle = panel; ctx.fillRect(bx, by, boxW, boxH); }
-  if (useThumb) {
-    const tx = bx + pad, ty = by + pad;
-    ctx.save(); ctx.beginPath(); ctx.rect(tx, ty, thumbSize, thumbSize); ctx.clip();
-    if (thumbCanvas) ctx.drawImage(thumbCanvas, 0, 0, thumbCanvas.width, thumbCanvas.height, tx, ty, thumbSize, thumbSize);
-    else { ctx.fillStyle = '#DDE1DA'; ctx.fillRect(tx, ty, thumbSize, thumbSize); }
-    drawPin(ctx, tx + thumbSize / 2, ty + thumbSize / 2, s);
-    if (thumbCanvas) {
-      ctx.font = `400 ${1.35 * s}px ${FONT}`; const at = '© OpenStreetMap', aw = ctx.measureText(at).width;
-      ctx.fillStyle = 'rgba(255,255,255,0.85)'; ctx.fillRect(tx + thumbSize - aw - 1.2 * s, ty + thumbSize - 2.3 * s, aw + 1.2 * s, 2.3 * s);
-      ctx.fillStyle = '#333'; ctx.textBaseline = 'alphabetic'; ctx.fillText(at, tx + thumbSize - aw - 0.6 * s, ty + thumbSize - 0.7 * s);
-    }
-    ctx.restore();
-  }
+  if (useThumb) drawMapThumb(ctx, bx + pad, by + pad, thumbSize, s, S.mapDesign, thumbVariants && thumbVariants[S.mapDesign], true);
   const textX = layout === 'text' ? bx : bx + pad + thumbSize + gap;
   let y = layout === 'text' ? by : by + pad + (contentH - textH) / 2;
   ctx.textBaseline = 'alphabetic'; ctx.lineJoin = 'round';
@@ -1160,6 +1232,7 @@ function refreshDfmtLabels() {
 function syncDependents() {
   const text = S.layout === 'text';
   el.showMap.disabled = text; el.chkMapWrap.classList.toggle('off', text);
+  document.querySelectorAll('input[name=mapDesign]').forEach(i => { i.disabled = text || !S.showMap; });
   const png = S.fmt === 'png';
   el.qualityWrap.hidden = png; el.writeExif.disabled = png; el.exifWrap.classList.toggle('off', png);
 }
@@ -1171,7 +1244,7 @@ function bindRadios(name, key, after) {
 }
 function bindCheck(id, key) {
   const c = el[id]; c.checked = S[key];
-  c.addEventListener('change', () => { S[key] = c.checked; saveSettings(); schedule(); });
+  c.addEventListener('change', () => { S[key] = c.checked; syncDependents(); saveSettings(); schedule(); });
 }
 
 const fontsReady = Promise.all([document.fonts.load('400 20px "Instrument Sans"'), document.fonts.load('700 20px "Instrument Sans"')]).catch(() => {});
@@ -1192,7 +1265,7 @@ function init() {
   el.dfmt.addEventListener('change', () => { S.dfmt = el.dfmt.value; saveSettings(); schedule(); });
 
   // style
-  bindRadios('layout', 'layout'); bindRadios('pos', 'pos'); bindRadios('theme', 'theme'); bindRadios('fmt', 'fmt');
+  bindRadios('layout', 'layout'); bindRadios('pos', 'pos'); bindRadios('theme', 'theme'); bindRadios('fmt', 'fmt'); bindRadios('mapDesign', 'mapDesign');
   bindCheck('showMap', 'showMap'); bindCheck('showCoords', 'showCoords'); bindCheck('showDate', 'showDate'); bindCheck('writeExif', 'writeExif');
   el.scale.value = Math.round(S.scale * 100); el.scaleOut.textContent = el.scale.value + '%';
   el.scale.addEventListener('input', () => { S.scale = +el.scale.value / 100; el.scaleOut.textContent = el.scale.value + '%'; saveSettings(); schedule(); });
@@ -1200,7 +1273,7 @@ function init() {
   el.quality.addEventListener('input', () => { S.quality = +el.quality.value; el.qualityOut.textContent = S.quality; saveSettings(); });
   el.coordFmt.value = S.coordFmt; el.coordFmt.addEventListener('change', () => { S.coordFmt = el.coordFmt.value; saveSettings(); schedule(); });
   el.maxEdge.value = String(S.maxEdge); el.maxEdge.addEventListener('change', () => { S.maxEdge = +el.maxEdge.value; saveSettings(); schedule(); });
-  syncDependents();
+  syncDependents(); renderMapPicker();
 
   // text
   el.title.addEventListener('input', () => { S.title = el.title.value; S.titleDirty = true; schedule(); });

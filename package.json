@@ -1,0 +1,13 @@
+{
+  "name": "geotag-stamp",
+  "version": "1.0.0",
+  "description": "Put a place, an address and a time on any photo. A static page that runs in the browser.",
+  "license": "MIT",
+  "private": false,
+  "scripts": {
+    "build": "node tools/build.mjs"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

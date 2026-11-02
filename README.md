@@ -17,6 +17,7 @@ It is one static page, built in plain HTML, CSS and JavaScript. It runs entirely
 - **Landing page, About and copyright details:** the site opens on a short landing page (a live sample of the stamp, how it works, About, credits and licences). The tool itself is at `#app`, for example `https://<your-username>.github.io/geotag-stamp/#app`.
 - **Rating:** visitors rate the site from 1 to 5 stars. The rating is saved on their own device. They can add a note and send it to you as a prefilled GitHub issue, or copy it.
 - **Share:** native share sheet where the device has one, plus WhatsApp, Telegram, X, Facebook, Email and copy link.
+- **Map-drawn backgrounds:** the four thumbnail styles double as the page's grounds. They are drawn in flat colour, in code, with no images and no gradients: a street map behind the hero, a red route threading the three steps, a night map around the photo and in the tool's preview area, a mono map behind the features, and satellite-style aerial texture behind About. Text sits on a flat wash so it stays readable.
 - **Loading animation:** a short pin-drop intro (once per browser tab session), staggered entrances, a progress bar while a photo opens, a place is searched or a file is saved, and tiles that fade in. All of it is switched off for visitors who prefer reduced motion.
 
 ## Publish it on GitHub Pages

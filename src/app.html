@@ -261,8 +261,8 @@ a.btn{text-decoration:none}
 .textlink{display:inline-flex;align-items:center;min-height:44px;padding:0 4px;color:var(--ink);font-weight:700;text-decoration:underline;text-underline-offset:5px;text-decoration-thickness:2px}
 .textlink:hover{color:var(--accent)}
 
-.hero{display:grid;grid-template-columns:minmax(0,1.04fr) minmax(0,.96fr);min-height:calc(100vh - 72px);min-height:calc(100dvh - 72px);padding-left:clamp(16px,3vw,40px)}
-.hero-copy{display:flex;flex-direction:column;justify-content:center;align-items:flex-start;gap:28px;padding:40px clamp(16px,3.4vw,56px) 56px 0;min-width:0}
+.hero{display:grid;grid-template-columns:minmax(0,1.04fr) minmax(0,.96fr);min-height:calc(100vh - 72px);min-height:calc(100dvh - 72px)}
+.hero-copy{display:flex;flex-direction:column;justify-content:center;align-items:flex-start;gap:28px;padding:40px clamp(16px,3.4vw,56px) 56px clamp(16px,3vw,40px);min-width:0}
 .hero h1{margin:0;font-size:clamp(34px,4.7vw,72px);line-height:.98;letter-spacing:-.035em;font-weight:700}
 .hero h1 .w{display:inline-block;animation:rise .8s var(--ease) calc(var(--base) + var(--wd,0s)) both}
 .hero h1 .w:nth-child(1){--wd:.00s}.hero h1 .w:nth-child(2){--wd:.05s}.hero h1 .w:nth-child(3){--wd:.10s}.hero h1 .w:nth-child(4){--wd:.15s}
@@ -280,7 +280,7 @@ a.btn{text-decoration:none}
 .hero-stage fieldset{width:min(100%,440px)}
 .hero-stage .seg{width:100%}
 .hero-stage .seg label{min-height:44px}
-.cap{margin:0;font-size:var(--t-s);line-height:1.4;color:var(--stage-ink-2);text-align:center;max-width:34em}
+.cap{margin:0;font-size:var(--t-s);line-height:1.4;color:#CBD4CD;text-align:center;max-width:34em}
 
 .band{padding:clamp(72px,10vw,150px) clamp(16px,3vw,40px)}
 .band.alt{background:var(--panel)}
@@ -393,6 +393,26 @@ dialog.closing::backdrop{animation:fadeOut .18s ease-in both}
 .group.off label{color:#7A847D}
 @media (max-width:959px){.nav.prev{left:24px}.nav.next{right:24px}}
 @media (max-width:420px){.actionbar .btn{padding:0 10px}}
+
+/* ================= grounds drawn from the four map styles ================= */
+[data-mapbg]{position:relative;isolation:isolate}
+.mapbg,.maproute{position:absolute;inset:0;width:100%;height:100%;display:block;pointer-events:none;z-index:-1}
+.mapbg{animation:fade .9s ease-out both}
+.maproute{clip-path:inset(0 100% 0 0)}
+.maproute[data-dir=y]{clip-path:inset(0 0 100% 0)}
+.maproute.go{animation:routeX 1.8s var(--ease-io) .2s both}
+.maproute[data-dir=y].go{animation-name:routeY}
+@keyframes routeX{from{clip-path:inset(0 100% 0 0)}to{clip-path:inset(0 0 0 0)}}
+@keyframes routeY{from{clip-path:inset(0 0 100% 0)}to{clip-path:inset(0 0 0 0)}}
+.band.sat{background:#1B2218;color:var(--stage-ink)}
+.band.sat h2,.band.sat h3{color:#fff}
+.band.sat p{color:#E6ECE5}
+.band.sat .prose a{color:#fff}
+.band.sat .prose a:hover{color:#F6B9AD}
+.preview{background:transparent}
+.drop{flex:0 1 auto;margin:auto;width:min(100%,600px);padding:clamp(24px,4vw,48px)}
+@media (max-width:959px){.drop{padding:28px 20px;min-height:0}}
+@media (prefers-reduced-motion:reduce){.maproute,.maproute[data-dir=y]{clip-path:none}}
 </style>
 </head>
 <body>
@@ -417,7 +437,7 @@ dialog.closing::backdrop{animation:fadeOut .18s ease-in both}
 
   <main>
     <section class="hero" aria-labelledby="h-hero">
-      <div class="hero-copy">
+      <div class="hero-copy" data-mapbg="street" data-seed="3" data-veil="0.5">
         <h1 id="h-hero"><span class="w">Put</span> <span class="w">the</span> <span class="w">place</span> <span class="w">and</span> <span class="w">time</span> <span class="w">on</span> <span class="w">any</span> <span class="w">photo.</span></h1>
         <p class="lead rise d3">Add the address, a map, coordinates and the time to a photo in under a minute.</p>
         <div class="cta rise d4">
@@ -426,7 +446,7 @@ dialog.closing::backdrop{animation:fadeOut .18s ease-in both}
         </div>
         <p class="fine rise d5">Free. No account. Your photo never leaves your device.</p>
       </div>
-      <div class="hero-stage">
+      <div class="hero-stage" data-mapbg="night" data-seed="8">
         <div class="photo">
           <canvas id="heroPhoto" aria-hidden="true"></canvas>
           <canvas id="heroStamp" class="stampcv" role="img" aria-label="A sample photo with a geotag stamp: Dubai, United Arab Emirates, its coordinates, the date and time, and a map thumbnail."></canvas>
@@ -444,7 +464,7 @@ dialog.closing::backdrop{animation:fadeOut .18s ease-in both}
       </div>
     </section>
 
-    <section id="how" class="band" aria-labelledby="h-how">
+    <section id="how" class="band" aria-labelledby="h-how" data-mapbg="street" data-seed="5" data-veil="0.4" data-route>
       <h2 id="h-how" class="reveal">Three steps, no sign-up.</h2>
       <ol class="steps" role="list">
         <li class="reveal r1"><h3>Choose your photos</h3><p>One photo or a whole batch, as JPEG, PNG or WebP, from your phone or computer. They open in your browser and go nowhere else.</p></li>
@@ -453,7 +473,7 @@ dialog.closing::backdrop{animation:fadeOut .18s ease-in both}
       </ol>
     </section>
 
-    <section id="why" class="band alt" aria-labelledby="h-why">
+    <section id="why" class="band alt" aria-labelledby="h-why" data-mapbg="mono" data-seed="12" data-veil="0.3">
       <div class="split">
         <div class="col">
           <h2 id="h-why" class="reveal">Made for real photos.</h2>
@@ -477,7 +497,7 @@ dialog.closing::backdrop{animation:fadeOut .18s ease-in both}
       </div>
     </section>
 
-    <section id="rate" class="band" aria-labelledby="h-rate">
+    <section id="rate" class="band" aria-labelledby="h-rate" data-mapbg="street" data-seed="21" data-veil="0.55">
       <div class="split">
         <div class="col reveal">
           <h2 id="h-rate">How is it working for you?</h2>
@@ -490,7 +510,7 @@ dialog.closing::backdrop{animation:fadeOut .18s ease-in both}
       </div>
     </section>
 
-    <section id="about" class="band alt" aria-labelledby="h-about">
+    <section id="about" class="band alt sat" aria-labelledby="h-about" data-mapbg="satellite" data-seed="17" data-scrim="0.68">
       <div class="split">
         <h2 id="h-about" class="reveal">About Chumi Geo Tag</h2>
         <div class="prose">
@@ -503,7 +523,7 @@ dialog.closing::backdrop{animation:fadeOut .18s ease-in both}
     </section>
   </main>
 
-  <footer class="foot" id="copyright">
+  <footer class="foot" id="copyright" data-mapbg="night" data-seed="30">
     <p class="bigname" aria-hidden="true">Chumi Geo Tag</p>
     <div class="foot-grid">
       <div>
@@ -710,7 +730,7 @@ dialog.closing::backdrop{animation:fadeOut .18s ease-in both}
 
   <section class="stage" aria-label="Preview">
     <div class="stage-top"><span class="name" id="stageName">Preview</span><span id="stageDims"></span></div>
-    <div class="stage-body" id="stageBody">
+    <div class="stage-body" id="stageBody" data-mapbg="night" data-seed="40">
       <div class="drop" id="drop">
         <h2>Drop photos here to start</h2>
         <p>Add one photo or a whole batch. The same place and time are stamped on every photo, and you can download them as a ZIP or as one PDF.</p>
@@ -2003,6 +2023,96 @@ function startCycle() {
   }, 3600);
 }
 
+/* ================= background maps: the four thumbnail styles, drawn large as page grounds ================= */
+function mixHex(a, b, t) {
+  const p = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16)), A = p(a), B = p(b);
+  return '#' + A.map((v, i) => Math.round(v + (B[i] - v) * t).toString(16).padStart(2, '0')).join('');
+}
+const MAP_STYLES = {
+  street:    { land: '#E8EBE6', road: '#F5F6F2', casing: '#CBD2C8', block: ['#DCE1D9', '#E1E5DD', '#D6DCD3'], park: '#C9DDBE', water: '#BCD6DC', shore: '#E4E6D4', avenue: '#FDFEFB', avenueCase: '#BEC6BA' },
+  mono:      { land: '#F6F7F3', road: '#FFFFFF', casing: '#DFE2DC', block: ['#EBEDE8', '#EEF0EB', '#E6E9E3'], park: '#E3E8DF', water: '#DDE4E6', shore: '#EEF0EA', avenue: '#FFFFFF', avenueCase: '#D8DCD5' },
+  night:     { land: '#151917', road: '#2C3431', casing: '#0F1311', block: ['#1B201E', '#1E2422', '#191E1C'], park: '#18261C', water: '#15212A', shore: '#212926', avenue: '#3B4642', avenueCase: '#0F1311' },
+  satellite: { land: '#39452F', road: '#62645E', casing: '#2B3428', block: ['#46513F', '#3E4A39', '#4D5846'], park: '#2F4A2C', water: '#2B4047', shore: '#6E6C58', avenue: '#74766F', avenueCase: '#2B3428' },
+};
+const ROOFS = ['#B9B3A6', '#9A9A92', '#C9C2B2', '#8E8A80', '#D2CCBE', '#A8A298', '#7E8A74'];
+function drawMapField(cv, style, seed, W, H, dpr, scrim, veil) {
+  const S = MAP_STYLES[style] || MAP_STYLES.street, R = rng(seed), g = cv.getContext('2d');
+  cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); g.setTransform(dpr, 0, 0, dpr, 0, 0);
+  g.fillStyle = S.road; g.fillRect(0, 0, W, H);
+  // the street plan: recursive subdivision, wider roads first, drawn slightly turned so it feels like a view, not a grid
+  g.save(); g.translate(W / 2, H / 2); g.rotate((R() - 0.5) * 0.3); g.translate(-W / 2, -H / 2);
+  const blocks = [], minS = style === 'satellite' ? Math.max(44, Math.min(W, H) / 11) : Math.max(70, Math.min(W, H) / 6.5);
+  (function split(x, y, w, h, d) {
+    const rw = d < 2 ? 24 : d < 4 ? 15 : 9;
+    if ((w < minS * 1.7 && h < minS * 1.7) || d > 6 || (d > 2 && R() < 0.13)) { blocks.push({ x, y, w, h }); return; }
+    if (w > h * (0.85 + R() * 0.45)) { const c = w * (0.34 + R() * 0.32); split(x, y, c - rw / 2, h, d + 1); split(x + c + rw / 2, y, w - c - rw / 2, h, d + 1); }
+    else { const c = h * (0.34 + R() * 0.32); split(x, y, w, c - rw / 2, d + 1); split(x, y + c + rw / 2, w, h - c - rw / 2, d + 1); }
+  })(-W * 0.25, -H * 0.25, W * 1.5, H * 1.5, 0);
+  for (const b of blocks) {
+    const park = R() < 0.11;
+    g.fillStyle = S.casing; g.fillRect(b.x - 2, b.y - 2, b.w + 4, b.h + 4);
+    g.fillStyle = park ? S.park : S.block[Math.floor(R() * S.block.length)]; g.fillRect(b.x, b.y, b.w, b.h);
+    if (style === 'satellite') {
+      if (park) { for (let i = 0; i < (b.w * b.h) / 420; i++) { g.fillStyle = R() < 0.5 ? '#254423' : '#3A5C34'; g.beginPath(); g.arc(b.x + R() * b.w, b.y + R() * b.h, 4 + R() * 7, 0, Math.PI * 2); g.fill(); } }
+      else { const n = 2 + Math.floor(R() * 5); for (let i = 0; i < n; i++) { const rw = b.w * (0.18 + R() * 0.3), rh = b.h * (0.18 + R() * 0.3), rx = b.x + 4 + R() * Math.max(1, b.w - rw - 8), ry = b.y + 4 + R() * Math.max(1, b.h - rh - 8); g.fillStyle = ROOFS[Math.floor(R() * ROOFS.length)]; g.fillRect(rx, ry, rw, rh); g.fillStyle = 'rgba(0,0,0,0.28)'; g.fillRect(rx + rw, ry + 3, 3, rh); } }
+    } else if (park === false && style !== 'mono' && R() < 0.35) {   // a few big buildings
+      g.fillStyle = mixHex(S.block[0], S.casing, 0.35); const bw = b.w * (0.3 + R() * 0.35), bh = b.h * (0.3 + R() * 0.35); g.fillRect(b.x + (b.w - bw) / 2, b.y + (b.h - bh) / 2, bw, bh);
+    }
+  }
+  g.restore();
+  // two long avenues across the plan
+  const avenue = (x1, y1, x2, y2, w) => { g.lineCap = 'butt'; g.strokeStyle = S.avenueCase; g.lineWidth = w + 5; g.beginPath(); g.moveTo(x1, y1); g.lineTo(x2, y2); g.stroke(); g.strokeStyle = S.avenue; g.lineWidth = w; g.stroke(); };
+  avenue(-20, H * (0.15 + R() * 0.3), W + 20, H * (0.5 + R() * 0.4), 20 + R() * 8);
+  avenue(W * (0.2 + R() * 0.4), -20, W * (0.45 + R() * 0.4), H + 20, 15 + R() * 6);
+  // a coast: shore band, then water, in one corner
+  const corner = Math.floor(R() * 4), fx = corner % 2 ? -1 : 1, fy = corner > 1 ? -1 : 1, ox = fx > 0 ? W : 0, oy = fy > 0 ? H : 0, pts = [];
+  const reach = 0.34 + R() * 0.16;
+  for (let i = 0; i <= 16; i++) { const t = i / 16; pts.push([ox - fx * W * reach * (1 - t) * 1.25 - fx * 0 , oy - fy * H * reach * t * 1.25 + (R() - 0.5) * 38]); }
+  g.beginPath(); g.moveTo(ox + fx * 60, oy + fy * 60); g.lineTo(pts[0][0], oy + fy * 60); pts.forEach(p => g.lineTo(p[0], p[1])); g.lineTo(ox + fx * 60, pts[16][1]); g.closePath();
+  g.lineJoin = 'round'; g.strokeStyle = S.shore; g.lineWidth = 16; g.stroke(); g.fillStyle = S.water; g.fill();
+  if (veil) { const [r, gg, b] = [1, 3, 5].map(i => parseInt(S.land.slice(i, i + 2), 16)); g.fillStyle = `rgba(${r},${gg},${b},${veil})`; g.fillRect(0, 0, W, H); }   // one flat wash keeps text-bearing fields calm
+  if (scrim) { g.fillStyle = `rgba(14,18,16,${scrim})`; g.fillRect(0, 0, W, H); }
+}
+function drawRoute(el, W, H, dpr) {
+  const lis = [...el.querySelectorAll('.steps > li')]; if (!lis.length) return;
+  let cv = el.querySelector(':scope > .maproute');
+  if (!cv) { cv = document.createElement('canvas'); cv.className = 'maproute'; cv.setAttribute('aria-hidden', 'true'); const base = el.querySelector(':scope > .mapbg'); el.insertBefore(cv, base ? base.nextSibling : el.firstChild); }
+  cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
+  const g = cv.getContext('2d'); g.setTransform(dpr, 0, 0, dpr, 0, 0);
+  const wide = innerWidth >= 960, r = lis.map(li => ({ l: li.offsetLeft, t: li.offsetTop, w: li.offsetWidth, h: li.offsetHeight })), s = 4.2;
+  cv.dataset.dir = wide ? 'x' : 'y';
+  g.strokeStyle = ACCENT; g.lineWidth = wide ? 12 : 7; g.lineJoin = 'miter'; g.lineCap = 'butt'; g.beginPath();
+  let tips;
+  if (wide) {
+    tips = r.map(q => ({ x: q.l + 16, y: q.t - 24 }));
+    g.moveTo(-10, tips[0].y);
+    tips.forEach((p, i) => { if (i) { const xm = (r[i - 1].l + r[i - 1].w + r[i].l) / 2; g.lineTo(xm, tips[i - 1].y); g.lineTo(xm, p.y); } g.lineTo(p.x, p.y); });
+    g.lineTo(W + 10, tips[tips.length - 1].y);
+  } else {
+    const x = 8; tips = r.map(q => ({ x, y: q.t + 20 }));
+    g.moveTo(x, r[0].t - 28); g.lineTo(x, r[r.length - 1].t + r[r.length - 1].h);
+  }
+  g.stroke();
+  if (wide) tips.forEach(p => drawPin(g, p.x, p.y, s));
+  else tips.forEach(p => { g.beginPath(); g.arc(p.x, p.y, 7, 0, Math.PI * 2); g.fillStyle = '#fff'; g.fill(); g.lineWidth = 4; g.strokeStyle = ACCENT; g.stroke(); });   // route stops on a phone
+}
+function initMapBackgrounds() {
+  const els = [...document.querySelectorAll('[data-mapbg]')];
+  const dpr = () => Math.min(window.devicePixelRatio || 1, 1.25);
+  const draw = el => {
+    const W = el.clientWidth, H = el.clientHeight; if (!W || !H) return;
+    const key = `${W}x${H}x${innerWidth >= 960}`; if (el._mapKey === key) return; el._mapKey = key;
+    let cv = el.querySelector(':scope > .mapbg');
+    if (!cv) { cv = document.createElement('canvas'); cv.className = 'mapbg'; cv.setAttribute('aria-hidden', 'true'); el.insertBefore(cv, el.firstChild); }
+    drawMapField(cv, el.dataset.mapbg, +el.dataset.seed || 1, W, H, dpr(), +el.dataset.scrim || 0, +el.dataset.veil || 0);
+    if (el.hasAttribute('data-route')) drawRoute(el, W, H, dpr());
+  };
+  const ro = new ResizeObserver(es => es.forEach(e => { const el = e.target; clearTimeout(el._mapT); el._mapT = setTimeout(() => draw(el), el._mapKey ? 160 : 0); }));
+  els.forEach(el => ro.observe(el));
+  const io = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) { const c = e.target.querySelector(':scope > .maproute'); if (c) c.classList.add('go'); } }), { threshold: 0.3 });
+  els.filter(el => el.hasAttribute('data-route')).forEach(el => io.observe(el));
+}
+
 /* ---- routing between the landing page and the tool ---- */
 let lastView = '';
 function enter(el) { el.classList.remove('enter'); void el.offsetWidth; el.classList.add('enter'); }
@@ -2034,6 +2144,7 @@ function initSite() {
   new IntersectionObserver(([e]) => { heroVisible = e.isIntersecting; }, { threshold: 0.2 }).observe(document.querySelector('.hero'));
   document.querySelectorAll('input[name=heroDesign]').forEach(r => r.addEventListener('change', () => { userPicked = true; swapDesign(r.value); }));
   fontsReady.then(() => { drawHero(); drawFeatureThumbs(); startCycle(); });
+  initMapBackgrounds();
   window.addEventListener('hashchange', () => route(false));
   route(true);
   setTimeout(() => document.documentElement.classList.add('intro-done'), 3200);

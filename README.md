@@ -14,6 +14,7 @@ It is one static page, built in plain HTML, CSS and JavaScript. It runs entirely
 - **Removes the old geotag:** if a photo already has a location in its data (EXIF), it is dropped automatically and a note says so. The old coordinates are never kept or reused, and the saved file carries only the location you set. A date already in the camera data still loads as the starting point for the date field.
 - **Replaces an old stamp drawn on the picture:** if a photo already has a stamp burned into it (a flat dark or light panel with text along the bottom, up to 40% of the height), it is detected automatically and covered with a continuation of its surroundings before your stamp goes on. You can instead crop it off, leave it, adjust its height with a slider, or mark one by hand on a photo where none was found. The picture hidden under an old stamp can't be recovered, so the original plain photo, if you have it, will always give a better result.
 - **Batches:** choose, drop or paste many photos at once (up to 60). Thumbnails let you check each one, with previous and next arrows on the preview. The same place, text, style and date go on every photo. Optionally keep each photo's own date and time when its camera data has one.
+- **PDF files:** choose or drop a PDF and every page becomes its own photo (named `file-page-1.jpg`, and so on), counted in the 60-photo limit. Pages are drawn in your browser, up to 2600 px on the long side, so a scanned document or a PDF of photos can be stamped and saved as a ZIP, as images or as a new PDF. Password-protected PDFs are refused with a message.
 - **Output:** JPEG (quality control) or PNG, capped at 4096 px on the long side or at the original size. A batch downloads as one ZIP of stamped photos, or as one **PDF**: A4 pages with 1, 2 or 4 photos each, or pages shaped like each photo. "Only this one" saves just the photo you are looking at.
 - **Landing page, About and copyright details:** the site opens on a short landing page (a live sample of the stamp, how it works, About, credits and licences). The tool itself is at `#app`, for example `https://<your-username>.github.io/geotag-stamp/#app`.
 - **Rating:** visitors rate the site from 1 to 5 stars. The rating is saved on their own device. They can add a note and send it to you as a prefilled GitHub issue, or copy it.
@@ -78,7 +79,7 @@ If you change a host, add it to the Content-Security-Policy `<meta>` in the `<he
 
 ## Change it and rebuild
 
-`index.html` is generated. Edit `src/app.html`, then run:
+`index.html` is generated (the PDF reader in `vendor/` is copied from the `pdfjs-dist` package, legacy build, and is not rebuilt). Edit `src/app.html`, then run:
 
 ```bash
 node tools/build.mjs
@@ -104,6 +105,7 @@ pyftsubset InstrumentSans-Regular.ttf --unicodes="U+0020-007E,U+00A0-00FF,U+2013
 ## Limits
 
 - Old-stamp detection looks for a panel along the bottom of the photo. Text-only stamps and very large stamps may not be found; use "Mark one by hand" for those.
+- PDF reading uses the files in `vendor/`, which load only when a PDF is chosen, so it needs the page opened from a web address (GitHub Pages or a local server). A copy saved to disk and opened by double-click still handles photos but not PDFs. Page content that a PDF draws as text or vector art is turned into a picture, so it can no longer be selected or searched.
 - A batch holds up to 60 photos. Photos are decoded one at a time while saving, to keep memory low on phones, so a big batch of full-size photos can take a while.
 - PDF pages hold the stamped photos as JPEGs; the location and time in the file data (EXIF) go into ZIP and image downloads, not the PDF.
 - Short Google links (`maps.app.goo.gl`) cannot be opened from a web page. Paste the full link from the browser's address bar instead.
@@ -118,6 +120,7 @@ pyftsubset InstrumentSans-Regular.ttf --unicodes="U+0020-007E,U+00A0-00FF,U+2013
 
 - Code: [MIT](LICENSE).
 - Font: Instrument Sans, SIL Open Font License 1.1 (`fonts/OFL.txt`).
+- PDF reading: [PDF.js](https://mozilla.github.io/pdf.js/) by Mozilla, Apache License 2.0 (`vendor/LICENSE-pdfjs.txt`), with its OpenJPEG, JBIG2 and QCMS WebAssembly parts (`vendor/wasm/`).
 - Map data and tiles: © [OpenStreetMap contributors](https://www.openstreetmap.org/copyright), ODbL. The credit is shown on the map and on the stamp's map thumbnail.
 - Satellite imagery: © Esri, Maxar, Earthstar Geographics and the GIS User Community. The credit is shown on the satellite thumbnail and in the page footer.
 - Address search: [Nominatim](https://nominatim.org/) and [Photon](https://photon.komoot.io/) (both OpenStreetMap data).

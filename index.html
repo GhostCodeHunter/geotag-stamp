@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Chumi Geo Tag: add location, address and time to a photo</title>
 <meta name="description" content="Upload a photo, set a place from an address, Google Maps link or map pin, pick a date and time, and download the photo with a geotag stamp.">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-tbVzjt5gke/vEcSkhD/H/khuEHcU4ra+HDJqiCrY4UY='; style-src 'sha256-sED5OZBdEnctDEn+AV7aOMcOd0DVNBlYqXY/jsXTH2Q='; img-src 'self' data: blob: https://tile.openstreetmap.org https://server.arcgisonline.com; font-src data:; connect-src https://nominatim.openstreetmap.org https://photon.komoot.io; base-uri 'none'; form-action 'none'; object-src 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'wasm-unsafe-eval' 'sha256-wDMtd0TUQV9JogdxndkzxDcsPOTNzT81reIO42l9Rzk='; style-src 'sha256-sED5OZBdEnctDEn+AV7aOMcOd0DVNBlYqXY/jsXTH2Q='; img-src 'self' data: blob: https://tile.openstreetmap.org https://server.arcgisonline.com; font-src data:; connect-src 'self' https://nominatim.openstreetmap.org https://photon.komoot.io; worker-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <meta name="theme-color" content="#E8EBE6">
 <meta property="og:type" content="website">
@@ -470,7 +470,7 @@ dialog.closing::backdrop{animation:fadeOut .18s ease-in both}
     <section id="how" class="band" aria-labelledby="h-how" data-mapbg="street" data-seed="5" data-veil="0.4" data-route>
       <h2 id="h-how" class="reveal">Three steps, no sign-up.</h2>
       <ol class="steps" role="list">
-        <li class="reveal r1"><h3>Choose your photos</h3><p>One photo or a whole batch, as JPEG, PNG or WebP, from your phone or computer. They open in your browser and go nowhere else.</p></li>
+        <li class="reveal r1"><h3>Choose your photos</h3><p>One photo or a whole batch, as JPEG, PNG or WebP, or a PDF with one photo per page, from your phone or computer. They open in your browser and go nowhere else.</p></li>
         <li class="reveal r2"><h3>Say where and when</h3><p>Type an address, paste a Google Maps link, drop a pin or use your location. Set any date and time.</p></li>
         <li class="reveal r3"><h3>Download it stamped</h3><p>Pick a map style, then save full-resolution photos as a ZIP or as one PDF, with the stamp drawn on and the location written into each file.</p></li>
       </ol>
@@ -519,7 +519,7 @@ dialog.closing::backdrop{animation:fadeOut .18s ease-in both}
         <div class="prose">
           <div class="reveal"><h3>What it is</h3><p>Chumi Geo Tag is a free tool that puts a place, an address and a time on a photo. Choose one picture or a whole batch, say where and when, and download them with a clean stamp and a real geotag inside each file, or as a PDF.</p></div>
           <div class="reveal r1"><h3>Your photo stays with you</h3><p>The photo is read and drawn on in your browser. It is never uploaded. Only the address you search for is sent to OpenStreetMap's search service, and map pictures are fetched from OpenStreetMap and Esri.</p></div>
-          <div class="reveal r2"><h3>Open source</h3><p>The code is free to read, copy and improve under the MIT licence. <a href="https://github.com/rkarthikraj198-stack/geotag-stamp" target="_blank" rel="noopener noreferrer">View it on GitHub</a>.</p></div>
+          <div class="reveal r2"><h3>Open source</h3><p>The code is free to read, copy and improve under the MIT licence. <a href="https://github.com/GhostCodeHunter/geotag-stamp" target="_blank" rel="noopener noreferrer">View it on GitHub</a>.</p></div>
           <div class="reveal r3"><h3>Please use it honestly</h3><p>Chumi Geo Tag writes the place and time you choose onto a photo. It does not prove where or when a photo was taken, and you are responsible for how you use the result.</p></div>
         </div>
       </div>
@@ -530,7 +530,7 @@ dialog.closing::backdrop{animation:fadeOut .18s ease-in both}
     <p class="bigname" aria-hidden="true">Chumi Geo Tag</p>
     <div class="foot-grid">
       <div>
-        <p>&copy; 2026 Chumi Geo Tag. The code is released under the <a href="https://github.com/rkarthikraj198-stack/geotag-stamp/blob/main/LICENSE" target="_blank" rel="noopener noreferrer">MIT licence</a>.</p>
+        <p>&copy; 2026 Chumi Geo Tag. The code is released under the <a href="https://github.com/GhostCodeHunter/geotag-stamp/blob/main/LICENSE" target="_blank" rel="noopener noreferrer">MIT licence</a>.</p>
         <p>Photos you stamp belong to you. Chumi Geo Tag never receives them.</p>
       </div>
       <div>
@@ -542,7 +542,7 @@ dialog.closing::backdrop{animation:fadeOut .18s ease-in both}
         <a href="#how">How it works</a>
         <a href="#about">About</a>
         <a href="#rate">Rate and share</a>
-        <a href="https://github.com/rkarthikraj198-stack/geotag-stamp" target="_blank" rel="noopener noreferrer">GitHub</a>
+        <a href="https://github.com/GhostCodeHunter/geotag-stamp" target="_blank" rel="noopener noreferrer">GitHub</a>
       </nav>
     </div>
   </footer>
@@ -567,10 +567,10 @@ dialog.closing::backdrop{animation:fadeOut .18s ease-in both}
     <section aria-labelledby="h-photo">
       <h2 id="h-photo">Photos</h2>
       <div class="row">
-        <button type="button" class="btn primary" id="pickBtn">Choose photos</button>
-        <input type="file" id="file" accept="image/*" multiple hidden>
+        <button type="button" class="btn primary" id="pickBtn">Choose photos or PDF</button>
+        <input type="file" id="file" accept="image/*,application/pdf,.pdf" multiple hidden>
       </div>
-      <p class="hint" id="fileName">No photos chosen. They stay in this browser; nothing is uploaded.</p>
+      <p class="hint" id="fileName">No photos chosen. Photos and PDFs stay in this browser; nothing is uploaded.</p>
       <ul class="film" id="film" aria-label="Photos in this batch" hidden></ul>
       <div class="row wrap" id="batchTools" hidden>
         <button type="button" class="btn quiet" id="rmBtn">Remove photo</button>
@@ -758,16 +758,16 @@ dialog.closing::backdrop{animation:fadeOut .18s ease-in both}
     <div class="stage-top"><span class="name" id="stageName">Preview</span><span id="stageDims"></span></div>
     <div class="stage-body" id="stageBody" data-mapbg="night" data-seed="40">
       <div class="drop" id="drop">
-        <h2>Drop photos here to start</h2>
-        <p>Add one photo or a whole batch. The same place and time are stamped on every photo, and you can download them as a ZIP or as one PDF.</p>
-        <button type="button" class="btn primary" id="pickBtn2">Choose photos</button>
+        <h2>Drop photos or a PDF here to start</h2>
+        <p>Add one photo or a whole batch. Each page of a PDF becomes its own photo. The same place and time are stamped on every photo, and you can download them as a ZIP or as one PDF.</p>
+        <button type="button" class="btn primary" id="pickBtn2">Choose photos or PDF</button>
       </div>
       <canvas class="preview" id="preview" hidden role="img" aria-label="Preview of the photo with the geotag stamp"></canvas>
       <button type="button" class="nav prev" id="prevBtn" aria-label="Previous photo" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 4l-8 8 8 8"/></svg></button>
       <button type="button" class="nav next" id="nextBtn" aria-label="Next photo" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 4l8 8-8 8"/></svg></button>
     </div>
     <div class="actionbar">
-      <p class="msg" id="saveMsg" role="status" aria-live="polite">Choose photos to begin.</p>
+      <p class="msg" id="saveMsg" role="status" aria-live="polite">Choose photos or a PDF to begin.</p>
       <div class="btns">
         <button type="button" class="btn" id="shareBtn" hidden>Share image</button>
         <button type="button" class="btn" id="pdfBtn" disabled>Download PDF</button>
@@ -806,8 +806,8 @@ const CONFIG = {
   photon: 'https://photon.komoot.io',
   tiles: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
   satellite: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
-  siteUrl: 'https://rkarthikraj198-stack.github.io/geotag-stamp/',
-  repo: 'https://github.com/rkarthikraj198-stack/geotag-stamp',
+  siteUrl: 'https://ghostcodehunter.github.io/geotag-stamp/',
+  repo: 'https://github.com/GhostCodeHunter/geotag-stamp',
   contactEmail: '',
 };
 const emailParam = () => CONFIG.contactEmail ? `&email=${encodeURIComponent(CONFIG.contactEmail)}` : '';
@@ -1551,7 +1551,7 @@ function updateSaveState(keepMsg) {
   const hasPhoto = items.length > 0, hasPlace = S.lat != null || S.addr.trim() || S.title.trim(), list = hasPhoto ? targets() : [], multi = list.length > 1;
   if (!exporting) { el.dlBtn.textContent = multi ? 'Download ZIP' : 'Download image'; el.dlBtn.disabled = el.pdfBtn.disabled = !(hasPhoto && hasPlace); }
   if (exporting || keepMsg) return;
-  if (!hasPhoto) el.saveMsg.textContent = 'Choose photos to begin.';
+  if (!hasPhoto) el.saveMsg.textContent = 'Choose photos or a PDF to begin.';
   else if (!hasPlace) el.saveMsg.textContent = 'Add a location to enable the download.';
   else if (multi) el.saveMsg.textContent = `${photoWord(list.length)} \u00B7 ZIP of ${S.fmt.toUpperCase()}s, or one PDF`;
   else { const it = list[0], o = sizeFor(it.w, effH(it), S.maxEdge); el.saveMsg.textContent = `${S.fmt.toUpperCase()} \u00B7 ${o.w} \u00D7 ${o.h} px`; }
@@ -1561,6 +1561,7 @@ function updateSaveState(keepMsg) {
 const MAX_PHOTOS = 60;
 let items = [], cur = -1, itemSeq = 0, showToken = 0, exporting = false;
 const isImageFile = f => /^image\//.test(f.type) || /\.(jpe?g|png|webp|gif|bmp|avif|heic|heif)$/i.test(f.name);
+const isPdfFile = f => f.type === 'application/pdf' || /\.pdf$/i.test(f.name);
 const isJpegFile = f => /jpe?g/i.test(f.type) || /\.jpe?g$/i.test(f.name);
 const tick = () => new Promise(r => setTimeout(r, 0));
 async function decodeUrl(url) { const im = new Image(); im.src = url; await im.decode(); return im; }
@@ -1575,7 +1576,7 @@ const targets = () => (S.scope === 'one' || items.length < 2) ? (items[cur] ? [i
 const baseOf = it => (it.name || 'photo').replace(/\.[^.]+$/, '') || 'photo';
 const photoWord = n => `${n} photo${n === 1 ? '' : 's'}`;
 function updateFileStatus() {
-  setStatus(el.fileName, items.length ? `${photoWord(items.length)} chosen. They stay in this browser; nothing is uploaded.` : 'No photos chosen. They stay in this browser; nothing is uploaded.');
+  setStatus(el.fileName, items.length ? `${photoWord(items.length)} chosen. Photos and PDFs stay in this browser; nothing is uploaded.` : 'No photos chosen. Photos and PDFs stay in this browser; nothing is uploaded.');
 }
 function markCurrent() { el.film.querySelectorAll('button').forEach((b, i) => { if (i === cur) b.setAttribute('aria-current', 'true'); else b.removeAttribute('aria-current'); }); }
 function renderFilm(newFrom) {
@@ -1592,7 +1593,7 @@ function renderFilm(newFrom) {
   el.film.hidden = !items.length; el.batchTools.hidden = !items.length;
   el.prevBtn.hidden = el.nextBtn.hidden = !many; el.scopeWrap.hidden = !many;
   el.rmBtn.textContent = many ? 'Remove this photo' : 'Remove photo';
-  el.pickBtn.textContent = items.length ? 'Add more photos' : 'Choose photos';
+  el.pickBtn.textContent = items.length ? 'Add more photos or PDF' : 'Choose photos or PDF';
   if (!many) S.scope = 'all';
   document.querySelectorAll('input[name=scope]').forEach(r => { r.checked = r.value === S.scope; });
   const all = document.querySelector('label[for=scope-all]'); if (all) all.textContent = `All ${items.length} photos`;
@@ -1619,12 +1620,66 @@ async function selectItem(i) {
   el.preview.classList.remove('pop'); void el.preview.offsetWidth; el.preview.classList.add('pop');
   await fontsReady; schedule();
 }
+/* ================= PDF files: every page becomes a photo =================
+   The PDF reader (pdf.js, in /vendor) is fetched only when a PDF is chosen, so the page itself stays small.
+   Pages are drawn on a canvas in this browser and kept as JPEG files, then handled like any other photo. */
+const PDF_EDGE = 2600, PDF_MAX_PIXELS = 10e6;
+let pdfLibP = null;
+function loadPdfLib() {
+  if (!pdfLibP) {
+    pdfLibP = import(new URL('vendor/pdf.min.mjs', location.href).href).then(m => {
+      m.GlobalWorkerOptions.workerSrc = new URL('vendor/pdf.worker.min.mjs', location.href).href;
+      return m;
+    }).catch(() => { pdfLibP = null; throw Object.assign(new Error('pdf reader unavailable'), { noLib: true }); });
+  }
+  return pdfLibP;
+}
+async function pdfToFiles(file, room, progress) {
+  const lib = await loadPdfLib();
+  const task = lib.getDocument({ data: new Uint8Array(await file.arrayBuffer()), wasmUrl: new URL('vendor/wasm/', location.href).href, isEvalSupported: false, enableXfa: false, verbosity: 0 });
+  const pdf = await task.promise;
+  const base = (file.name || 'document').replace(/\.pdf$/i, '') || 'document', files = [], n = Math.min(pdf.numPages, room);
+  try {
+    for (let i = 1; i <= n; i++) {
+      progress(`Reading page ${i} of ${n} in “${file.name}”…`);
+      const page = await pdf.getPage(i), v1 = page.getViewport({ scale: 1 });
+      let k = PDF_EDGE / Math.max(v1.width, v1.height);
+      k = Math.min(k, Math.sqrt(PDF_MAX_PIXELS / (v1.width * v1.height)));
+      const vp = page.getViewport({ scale: k }), c = document.createElement('canvas');
+      c.width = Math.max(1, Math.round(vp.width)); c.height = Math.max(1, Math.round(vp.height));
+      const g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, c.width, c.height);
+      await page.render({ canvas: c, canvasContext: g, viewport: vp }).promise;
+      const blob = await new Promise((res, rej) => c.toBlob(b => b ? res(b) : rej(new Error('encode')), 'image/jpeg', 0.92));
+      files.push(new File([blob], `${base}-page-${i}.jpg`, { type: 'image/jpeg' }));
+      c.width = c.height = 0; page.cleanup();
+      await tick();
+    }
+  } finally { try { await task.destroy(); } catch (e) {} }
+  return { files, pages: pdf.numPages };
+}
+function pdfProblem(e, f) {
+  if (e && e.noLib) return 'PDF files need the online version of this tool, so open it from its web address';
+  if (e && e.name === 'PasswordException') return `“${f.name}” is locked with a password. Remove the password, then add it again`;
+  return `“${f.name}” couldn’t be read as a PDF`;
+}
+
 async function addFiles(list) {
-  const all = [...list], files = all.filter(isImageFile);
-  if (!files.length) { setStatus(el.fileName, 'None of those files are images. Choose JPEG, PNG or WebP photos.', true); return; }
+  const all = [...list], known = all.filter(f => isImageFile(f) || isPdfFile(f));
+  if (!known.length) { setStatus(el.fileName, 'None of those files are photos or PDFs. Choose JPEG, PNG or WebP photos, or a PDF.', true); return; }
   busy(true);
   try {
-    const room = Math.max(0, MAX_PHOTOS - items.length), take = files.slice(0, room), first = items.length;
+    const room = Math.max(0, MAX_PHOTOS - items.length), notes = [], problems = [], take = [];
+    let capped = false;
+    for (const f of known) {
+      if (take.length >= room) { capped = true; continue; }
+      if (isImageFile(f)) { take.push(f); continue; }
+      try {
+        const r = await pdfToFiles(f, room - take.length, m => setStatus(el.fileName, m));
+        take.push(...r.files); notes.push(`${r.files.length} page${r.files.length === 1 ? '' : 's'} read from “${f.name}”`);
+        if (r.pages > r.files.length) capped = true;
+      } catch (e) { console.warn('PDF could not be read:', e); problems.push(pdfProblem(e, f)); }
+    }
+    const first = items.length;
     let failed = 0;
     for (let i = 0; i < take.length; i++) {
       setStatus(el.fileName, `Adding photo ${i + 1} of ${take.length}…`);
@@ -1639,15 +1694,15 @@ async function addFiles(list) {
       await tick();
     }
     const added = items.length - first;
-    if (!added) { updateFileStatus(); setStatus(el.fileName, 'This browser couldn’t open those files. Try JPEG, PNG or WebP versions.', true); return; }
+    if (!added) { updateFileStatus(); setStatus(el.fileName, problems.length ? `${problems.join('. ')}.` : 'This browser couldn’t open those files. Try JPEG, PNG or WebP versions.', true); return; }
     renderFilm(first);
     await selectItem(first);
     updateFileStatus();
-    const notes = [];
-    if (all.length - files.length) notes.push(`${photoWord(all.length - files.length).replace('photo', 'file')} skipped (not images)`);
+    notes.push(...problems);
+    if (all.length - known.length) notes.push(`${photoWord(all.length - known.length).replace('photo', 'file')} skipped (not photos or PDFs)`);
     if (failed) notes.push(`${failed} couldn’t be opened`);
-    if (files.length > take.length) notes.push(`only the first ${MAX_PHOTOS} photos are kept`);
-    if (notes.length) setStatus(el.fileName, `${photoWord(items.length)} chosen. ${notes.join('; ')}.`);
+    if (capped) notes.push(`only the first ${MAX_PHOTOS} photos are kept`);
+    if (notes.length) setStatus(el.fileName, `${photoWord(items.length)} chosen. ${notes.join('; ')}.`, !!problems.length);
     showPhotoNotes(items.slice(first));
   } finally { busy(false); }
 }
@@ -2295,7 +2350,7 @@ function init() {
   window.addEventListener('dragover', e => { e.preventDefault(); if (!el.drop.hidden) el.drop.classList.add('over'); });
   window.addEventListener('dragleave', e => { if (!e.relatedTarget) el.drop.classList.remove('over'); });
   window.addEventListener('drop', e => { e.preventDefault(); el.drop.classList.remove('over'); const fl = e.dataTransfer ? [...e.dataTransfer.files] : []; if (fl.length) addFiles(fl); });
-  window.addEventListener('paste', e => { const fl = e.clipboardData ? [...e.clipboardData.files].filter(x => /^image\//.test(x.type)) : []; if (fl.length) addFiles(fl); });
+  window.addEventListener('paste', e => { const fl = e.clipboardData ? [...e.clipboardData.files].filter(x => /^image\//.test(x.type) || x.type === 'application/pdf') : []; if (fl.length) addFiles(fl); });
   el.prevBtn.addEventListener('click', () => stepItem(-1)); el.nextBtn.addEventListener('click', () => stepItem(1));
   el.rmBtn.addEventListener('click', removeCurrent); el.clearBtn.addEventListener('click', clearAll);
   el.oldH.addEventListener('input', () => { const it = items[cur]; if (!it || !it.stamp) return; it.stamp.pct = +el.oldH.value; el.oldHOut.textContent = `${Math.round(it.stamp.pct)}%`; showGuide(); });

@@ -470,7 +470,7 @@ dialog.closing::backdrop{animation:fadeOut .18s ease-in both}
     <section id="how" class="band" aria-labelledby="h-how" data-mapbg="street" data-seed="5" data-veil="0.4" data-route>
       <h2 id="h-how" class="reveal">Three steps, no sign-up.</h2>
       <ol class="steps" role="list">
-        <li class="reveal r1"><h3>Choose your photos</h3><p>One photo or a whole batch, as JPEG, PNG or WebP, or a PDF with one photo per page, from your phone or computer. They open in your browser and go nowhere else.</p></li>
+        <li class="reveal r1"><h3>Choose your photos</h3><p>One photo or a whole batch, as JPEG, PNG or WebP, from your phone or computer. Or a PDF: each page becomes a photo. They open in your browser and go nowhere else.</p></li>
         <li class="reveal r2"><h3>Say where and when</h3><p>Type an address, paste a Google Maps link, drop a pin or use your location. Set any date and time.</p></li>
         <li class="reveal r3"><h3>Download it stamped</h3><p>Pick a map style, then save full-resolution photos as a ZIP or as one PDF, with the stamp drawn on and the location written into each file.</p></li>
       </ol>
@@ -483,7 +483,7 @@ dialog.closing::backdrop{animation:fadeOut .18s ease-in both}
           <dl class="facts">
             <div class="reveal r1"><dt>Reads Google Maps links.</dt><dd>Paste a place link, a link with coordinates, or plain latitude and longitude. The pin lands where it should.</dd></div>
             <div class="reveal r2"><dt>Writes a real geotag.</dt><dd>JPEG downloads carry the GPS position, date and time zone in the file, so gallery apps and maps place the photo correctly.</dd></div>
-            <div class="reveal r3"><dt>Stamps a whole batch.</dt><dd>Add many photos at once. The same place goes on every one. Save them as a ZIP, or as a PDF with one, two or four photos per page.</dd></div>
+            <div class="reveal r3"><dt>Stamps a whole batch.</dt><dd>Add many photos at once, or a PDF whose pages become photos. The same place goes on every one. Save them as a ZIP, or as a PDF with one, two or four photos per page.</dd></div>
             <div class="reveal r3"><dt>Removes the old geotag.</dt><dd>A location hidden in the photo's data is dropped automatically. A stamp already drawn on the picture is found and covered or cropped off before yours goes on.</dd></div>
             <div class="reveal r4"><dt>Private by design.</dt><dd>Your photo is never uploaded. The page can only talk to the map and address services, and nothing else.</dd></div>
           </dl>
@@ -517,7 +517,7 @@ dialog.closing::backdrop{animation:fadeOut .18s ease-in both}
       <div class="split">
         <h2 id="h-about" class="reveal">About Chumi Geo Tag</h2>
         <div class="prose">
-          <div class="reveal"><h3>What it is</h3><p>Chumi Geo Tag is a free tool that puts a place, an address and a time on a photo. Choose one picture or a whole batch, say where and when, and download them with a clean stamp and a real geotag inside each file, or as a PDF.</p></div>
+          <div class="reveal"><h3>What it is</h3><p>Chumi Geo Tag is a free tool that puts a place, an address and a time on a photo. Choose one picture, a whole batch or a PDF, say where and when, and download them with a clean stamp and a real geotag inside each file, or as a PDF.</p></div>
           <div class="reveal r1"><h3>Your photo stays with you</h3><p>The photo is read and drawn on in your browser. It is never uploaded. Only the address you search for is sent to OpenStreetMap's search service, and map pictures are fetched from OpenStreetMap and Esri.</p></div>
           <div class="reveal r2"><h3>Open source</h3><p>The code is free to read, copy and improve under the MIT licence. <a href="https://github.com/GhostCodeHunter/geotag-stamp" target="_blank" rel="noopener noreferrer">View it on GitHub</a>.</p></div>
           <div class="reveal r3"><h3>Please use it honestly</h3><p>Chumi Geo Tag writes the place and time you choose onto a photo. It does not prove where or when a photo was taken, and you are responsible for how you use the result.</p></div>
@@ -759,7 +759,7 @@ dialog.closing::backdrop{animation:fadeOut .18s ease-in both}
     <div class="stage-body" id="stageBody" data-mapbg="night" data-seed="40">
       <div class="drop" id="drop">
         <h2>Drop photos or a PDF here to start</h2>
-        <p>Add one photo or a whole batch. Each page of a PDF becomes its own photo. The same place and time are stamped on every photo, and you can download them as a ZIP or as one PDF.</p>
+        <p>Add one photo, a whole batch or a PDF, where each page becomes its own photo. The same place and time are stamped on every one, and you can download them as a ZIP or as one PDF.</p>
         <button type="button" class="btn primary" id="pickBtn2">Choose photos or PDF</button>
       </div>
       <canvas class="preview" id="preview" hidden role="img" aria-label="Preview of the photo with the geotag stamp"></canvas>
@@ -1637,9 +1637,10 @@ function loadPdfLib() {
 async function pdfToFiles(file, room, progress) {
   const lib = await loadPdfLib();
   const task = lib.getDocument({ data: new Uint8Array(await file.arrayBuffer()), wasmUrl: new URL('vendor/wasm/', location.href).href, isEvalSupported: false, enableXfa: false, verbosity: 0 });
-  const pdf = await task.promise;
-  const base = (file.name || 'document').replace(/\.pdf$/i, '') || 'document', files = [], n = Math.min(pdf.numPages, room);
+  const base = (file.name || 'document').replace(/\.pdf$/i, '') || 'document', files = [];
+  let pages = 0;
   try {
+    const pdf = await task.promise, n = Math.min(pdf.numPages, room); pages = pdf.numPages;
     for (let i = 1; i <= n; i++) {
       progress(`Reading page ${i} of ${n} in “${file.name}”…`);
       const page = await pdf.getPage(i), v1 = page.getViewport({ scale: 1 });
@@ -1655,15 +1656,17 @@ async function pdfToFiles(file, room, progress) {
       await tick();
     }
   } finally { try { await task.destroy(); } catch (e) {} }
-  return { files, pages: pdf.numPages };
+  return { files, pages };
 }
 function pdfProblem(e, f) {
-  if (e && e.noLib) return 'PDF files need the online version of this tool, so open it from its web address';
+  if (e && e.noLib) return location.protocol === 'file:' ? 'PDF files need the online version of this tool. Open it from its web address' : 'The PDF reader couldn’t be loaded. Check your connection, then add the file again';
   if (e && e.name === 'PasswordException') return `“${f.name}” is locked with a password. Remove the password, then add it again`;
-  return `“${f.name}” couldn’t be read as a PDF`;
+  return `“${f.name}” couldn’t be read as a PDF. Try another copy of the file`;
 }
 
-async function addFiles(list) {
+let addChain = Promise.resolve();
+function addFiles(list) { const run = addChain.then(() => addFilesNow(list)); addChain = run.catch(() => {}); return run; }
+async function addFilesNow(list) {
   const all = [...list], known = all.filter(f => isImageFile(f) || isPdfFile(f));
   if (!known.length) { setStatus(el.fileName, 'None of those files are photos or PDFs. Choose JPEG, PNG or WebP photos, or a PDF.', true); return; }
   busy(true);
@@ -1694,15 +1697,19 @@ async function addFiles(list) {
       await tick();
     }
     const added = items.length - first;
-    if (!added) { updateFileStatus(); setStatus(el.fileName, problems.length ? `${problems.join('. ')}.` : 'This browser couldn’t open those files. Try JPEG, PNG or WebP versions.', true); return; }
+    if (!added) {
+      updateFileStatus();
+      const why = [...problems]; if (failed) why.push(`${failed} couldn’t be opened`);
+      if (!why.length) why.push(capped ? `The batch already has ${MAX_PHOTOS} photos. Remove some to add more` : 'This browser couldn’t open those files. Try JPEG, PNG or WebP versions');
+      setStatus(el.fileName, `${why.join('. ')}.`, true); return;
+    }
     renderFilm(first);
     await selectItem(first);
     updateFileStatus();
-    notes.push(...problems);
     if (all.length - known.length) notes.push(`${photoWord(all.length - known.length).replace('photo', 'file')} skipped (not photos or PDFs)`);
     if (failed) notes.push(`${failed} couldn’t be opened`);
     if (capped) notes.push(`only the first ${MAX_PHOTOS} photos are kept`);
-    if (notes.length) setStatus(el.fileName, `${photoWord(items.length)} chosen. ${notes.join('; ')}.`, !!problems.length);
+    if (notes.length || problems.length) setStatus(el.fileName, [`${photoWord(items.length)} chosen.`, notes.length ? `${notes.join('; ')}.` : '', ...problems.map(m => `${m}.`)].filter(Boolean).join(' '), !!problems.length);
     showPhotoNotes(items.slice(first));
   } finally { busy(false); }
 }

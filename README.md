@@ -106,6 +106,7 @@ pyftsubset InstrumentSans-Regular.ttf --unicodes="U+0020-007E,U+00A0-00FF,U+2013
 
 - Old-stamp detection looks for a panel along the bottom of the photo. Text-only stamps and very large stamps may not be found; use "Mark one by hand" for those.
 - PDF reading uses the files in `vendor/`, which load only when a PDF is chosen, so it needs the page opened from a web address (GitHub Pages or a local server). A copy saved to disk and opened by double-click still handles photos but not PDFs. Page content that a PDF draws as text or vector art is turned into a picture, so it can no longer be selected or searched.
+- PDFs that depend on fonts they don't contain (some documents in Asian languages) may show fallback letters, because the font and character-map files are not bundled.
 - A batch holds up to 60 photos. Photos are decoded one at a time while saving, to keep memory low on phones, so a big batch of full-size photos can take a while.
 - PDF pages hold the stamped photos as JPEGs; the location and time in the file data (EXIF) go into ZIP and image downloads, not the PDF.
 - Short Google links (`maps.app.goo.gl`) cannot be opened from a web page. Paste the full link from the browser's address bar instead.
